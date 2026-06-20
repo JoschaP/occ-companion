@@ -63,10 +63,16 @@ function KeyBlock({ label, value }: { label: string; value: string }) {
 export function KeygenDialog({ opened, onClose, onUseKey }: Props) {
   const [pair, setPair] = useState<KeyPair | null>(null);
   const [busy, setBusy] = useState(false);
+  const [saved, setSaved] = useState(false);
+
+  // The dialog may only be dismissed before a key exists, or once it has been
+  // saved — so a freshly generated private key can never be lost by accident.
+  const canDismiss = !pair || saved;
 
   async function generate() {
     setBusy(true);
     try {
+      setSaved(false);
       setPair(await api.generateKeypair());
     } finally {
       setBusy(false);
@@ -75,36 +81,65 @@ export function KeygenDialog({ opened, onClose, onUseKey }: Props) {
 
   function close() {
     setPair(null);
+    setSaved(false);
     onClose();
   }
 
-  async function saveToFile() {
+  /** A human-readable recovery document that is also a valid age identity file
+      (every line except the secret key is a `#` comment). */
+  function rescueKit(p: KeyPair): string {
+    const today = new Date().toISOString().slice(0, 10);
+    return [
+      "# ============================================================",
+      "#   OCC Companion — Key Rescue Kit",
+      "# ============================================================",
+      `#   Created: ${today}`,
+      "#",
+      "#   This file is the ONLY way to decrypt your OCC data exports.",
+      "#   Keep it safe and private. Anyone with the private key below",
+      "#   can read your exports. It is never sent anywhere.",
+      "#",
+      "#   PUBLIC KEY — give this to the OCC so it can encrypt for you:",
+      `#     ${p.publicKey}`,
+      "#",
+      "#   PRIVATE KEY — your secret. It is the line below that starts",
+      "#   with AGE-SECRET-KEY. If you lose it, your exports can NEVER",
+      "#   be recovered.",
+      "#",
+      "#   To restore: open OCC Companion, add a connection, and paste",
+      "#   the private key into the \"Private key\" field. Or decrypt a",
+      "#   file manually with the age tool:",
+      "#     age -d -i occ-companion-rescue-kit.txt export.json.age > export.json",
+      "# ============================================================",
+      "",
+      p.privateKey,
+      "",
+    ].join("\n");
+  }
+
+  async function saveRescueKit() {
     if (!pair) return;
     const path = await save({
-      title: "Save your key file",
-      defaultPath: "occ-companion-identity.txt",
-      filters: [{ name: "age identity", extensions: ["txt", "key", "age"] }],
+      title: "Save your Rescue Kit",
+      defaultPath: "occ-companion-rescue-kit.txt",
+      filters: [{ name: "Rescue Kit", extensions: ["txt", "age", "key"] }],
     });
     if (!path) return;
-    // Standard age identity file: public key as a comment + the secret key.
-    const content =
-      `# OCC Companion key pair\n` +
-      `# public key: ${pair.publicKey}\n` +
-      `${pair.privateKey}\n`;
     try {
-      await api.saveTextFile(path, content, true);
+      await api.saveTextFile(path, rescueKit(pair), true);
+      setSaved(true);
       notifications.show({
         color: "green",
         icon: <IconCheck size={18} />,
-        title: "Key saved",
-        message: "Keep this file somewhere safe — it is your only way to decrypt.",
+        title: "Rescue Kit saved",
+        message: "Keep this file safe — it is your only way to decrypt.",
         autoClose: 3500,
       });
     } catch (e) {
       notifications.show({
         color: "red",
         icon: <IconAlertTriangle size={18} />,
-        title: "Could not save the key",
+        title: "Could not save the Rescue Kit",
         message: String(e),
         autoClose: 5000,
       });
@@ -114,10 +149,15 @@ export function KeygenDialog({ opened, onClose, onUseKey }: Props) {
   return (
     <Modal
       opened={opened}
-      onClose={close}
+      onClose={() => {
+        if (canDismiss) close();
+      }}
       title="Generate a key pair"
       size="lg"
       centered
+      closeOnClickOutside={canDismiss}
+      closeOnEscape={canDismiss}
+      withCloseButton={canDismiss}
     >
       <Stack>
         <Text size="sm" c="dimmed">
@@ -141,27 +181,31 @@ export function KeygenDialog({ opened, onClose, onUseKey }: Props) {
             <KeyBlock label="PRIVATE KEY — keep this secret" value={pair.privateKey} />
 
             <Alert
-              color="orange"
-              icon={<IconAlertTriangle size={18} />}
+              color={saved ? "green" : "orange"}
+              icon={saved ? <IconCheck size={18} /> : <IconAlertTriangle size={18} />}
               variant="light"
             >
-              Save the private key somewhere safe now. If you lose it, your
-              encrypted exports can never be recovered. It is never sent
-              anywhere.
+              {saved
+                ? "Rescue Kit saved. You can continue — keep that file safe."
+                : "Save your Rescue Kit to continue. It is the only way to decrypt your exports; if you lose it, they can never be recovered. It is never sent anywhere."}
             </Alert>
 
             <Group justify="space-between">
               <Button
-                variant="light"
-                leftSection={<IconDeviceFloppy size={18} />}
-                onClick={saveToFile}
+                variant={saved ? "light" : "filled"}
+                color={saved ? "green" : undefined}
+                leftSection={
+                  saved ? <IconCheck size={18} /> : <IconDeviceFloppy size={18} />
+                }
+                onClick={saveRescueKit}
               >
-                Save key to file
+                {saved ? "Saved — save again" : "Download Rescue Kit"}
               </Button>
               <Group gap="sm">
                 {onUseKey && (
                   <Button
                     variant="subtle"
+                    disabled={!saved}
                     onClick={() => {
                       onUseKey(pair.privateKey);
                       close();
@@ -170,7 +214,7 @@ export function KeygenDialog({ opened, onClose, onUseKey }: Props) {
                     Use in connection
                   </Button>
                 )}
-                <Button variant="default" onClick={close}>
+                <Button variant="default" disabled={!saved} onClick={close}>
                   Done
                 </Button>
               </Group>

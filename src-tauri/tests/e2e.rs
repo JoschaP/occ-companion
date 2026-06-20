@@ -161,6 +161,29 @@ async fn e2e_upload_list_download_decrypt() {
 }
 
 #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+async fn e2e_wrong_credentials_gives_clear_message() {
+    let Some((profile, _)) = test_profile() else {
+        eprintln!("SKIP e2e_wrong_credentials_gives_clear_message: .env.test not configured");
+        return;
+    };
+
+    // Right endpoint/bucket, wrong secret → must surface a clear access error,
+    // not a raw SDK dump.
+    let client = s3::build_client(&profile, "this-is-not-the-real-secret")
+        .await
+        .expect("build client");
+    let err = s3::list_objects(&client, &profile.bucket, "")
+        .await
+        .expect_err("wrong credentials must fail");
+
+    let msg = err.to_string().to_lowercase();
+    assert!(
+        msg.contains("access denied") || msg.contains("access key"),
+        "expected a clear credentials message, got: {msg}"
+    );
+}
+
+#[tokio::test(flavor = "multi_thread", worker_threads = 2)]
 async fn e2e_wrong_key_is_fail_closed() {
     let Some((profile, secret)) = test_profile() else {
         eprintln!("SKIP e2e_wrong_key_is_fail_closed: .env.test not configured");

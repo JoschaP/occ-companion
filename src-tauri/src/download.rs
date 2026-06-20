@@ -36,7 +36,7 @@ pub async fn download_and_decrypt(
         .key(key)
         .send()
         .await
-        .map_err(|e| AppError::S3(format!("Could not download the file: {}", crate::s3::service_msg(&e))))?;
+        .map_err(|e| AppError::S3(crate::s3::friendly_s3(&e)))?;
 
     let total = resp.content_length().unwrap_or(0).max(0) as u64;
     let body = resp.body.into_async_read();

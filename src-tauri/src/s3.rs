@@ -3,8 +3,13 @@
 //! Works against AWS, MinIO, IONOS and Ceph. `force_path_style` is required for
 //! MinIO/Ceph where virtual-hosted-style buckets are not available.
 
+use std::time::Duration;
+
 use aws_config::BehaviorVersion;
+use aws_sdk_s3::config::retry::RetryConfig;
+use aws_sdk_s3::config::timeout::TimeoutConfig;
 use aws_sdk_s3::config::{Credentials, Region};
+use aws_sdk_s3::error::{ProvideErrorMetadata, SdkError};
 use aws_sdk_s3::Client;
 use serde::Serialize;
 
@@ -50,11 +55,56 @@ pub async fn build_client(profile: &ConnectionProfile, secret_access_key: &str) 
         .load()
         .await;
 
+    // Bounded timeouts so an unreachable or wrong endpoint fails promptly with
+    // a clear message instead of hanging; a few retries cover transient blips.
+    let timeout = TimeoutConfig::builder()
+        .connect_timeout(Duration::from_secs(8))
+        .operation_attempt_timeout(Duration::from_secs(30))
+        .build();
+
     let conf = aws_sdk_s3::config::Builder::from(&shared)
+        .timeout_config(timeout)
+        .retry_config(RetryConfig::standard().with_max_attempts(3))
         .force_path_style(profile.path_style)
         .build();
 
     Ok(Client::from_conf(conf))
+}
+
+/// Translate an SDK error into a calm, actionable message for a non-technical
+/// recipient: bad credentials vs. unreachable endpoint vs. missing bucket vs.
+/// wrong region.
+pub(crate) fn friendly_s3<E, R>(e: &SdkError<E, R>) -> String
+where
+    E: ProvideErrorMetadata,
+{
+    match e {
+        SdkError::TimeoutError(_) => {
+            "The storage endpoint did not respond in time. Check the endpoint URL and your network connection.".into()
+        }
+        SdkError::DispatchFailure(_) => {
+            "Could not reach the storage endpoint. Check the endpoint URL (and that it uses https), and your network connection.".into()
+        }
+        SdkError::ResponseError(_) => {
+            "The endpoint returned an unexpected response. Make sure this is an S3-compatible endpoint.".into()
+        }
+        SdkError::ServiceError(se) => match se.err().code().unwrap_or("") {
+            "AccessDenied" | "InvalidAccessKeyId" | "SignatureDoesNotMatch" => {
+                "Access denied. Check your access key ID and secret access key.".into()
+            }
+            "NoSuchBucket" => "Bucket not found. Check the bucket name.".into()
+            ,
+            "PermanentRedirect" | "AuthorizationHeaderMalformed" => {
+                "Wrong region or endpoint for this bucket. Check the region and endpoint.".into()
+            }
+            _ => se
+                .err()
+                .message()
+                .map(|m| format!("Storage error: {m}"))
+                .unwrap_or_else(|| "The storage service reported an error.".into()),
+        },
+        _ => "The storage request could not be completed. Check the endpoint and your credentials.".into(),
+    }
 }
 
 /// List every object under `prefix` (paginated, follows continuation tokens).
@@ -76,7 +126,7 @@ pub async fn list_objects(
         .send();
 
     while let Some(page) = paginator.next().await {
-        let page = page.map_err(|e| AppError::S3(format!("Could not list the bucket: {}", service_msg(&e))))?;
+        let page = page.map_err(|e| AppError::S3(friendly_s3(&e)))?;
         for obj in page.contents() {
             let Some(key) = obj.key() else { continue };
             // Skip "directory marker" zero-byte keys ending in '/'.
@@ -92,15 +142,4 @@ pub async fn list_objects(
     }
 
     Ok(out)
-}
-
-/// Pull a short, human-readable message out of an SDK error.
-pub(crate) fn service_msg<E: std::error::Error>(e: &E) -> String {
-    let mut msg = e.to_string();
-    let mut source = e.source();
-    while let Some(s) = source {
-        msg = s.to_string();
-        source = s.source();
-    }
-    msg
 }

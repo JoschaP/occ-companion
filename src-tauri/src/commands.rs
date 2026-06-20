@@ -266,7 +266,7 @@ pub async fn connect(
         })
         .send()
         .await
-        .map_err(|e| AppError::S3(format!("Could not connect: {}", s3::service_msg(&e))))?;
+        .map_err(|e| AppError::S3(s3::friendly_s3(&e)))?;
 
     let result = ConnectResult {
         bucket: profile.bucket.clone(),

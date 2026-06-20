@@ -74,6 +74,14 @@ export function KeygenDialog({ opened, onClose, onUseKey }: Props) {
     try {
       setSaved(false);
       setPair(await api.generateKeypair());
+    } catch (e) {
+      notifications.show({
+        color: "red",
+        icon: <IconAlertTriangle size={18} />,
+        title: "Could not generate a key pair",
+        message: String(e),
+        autoClose: 5000,
+      });
     } finally {
       setBusy(false);
     }

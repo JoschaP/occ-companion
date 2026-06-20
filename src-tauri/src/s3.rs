@@ -8,7 +8,7 @@ use std::time::Duration;
 use aws_config::BehaviorVersion;
 use aws_sdk_s3::config::retry::RetryConfig;
 use aws_sdk_s3::config::timeout::TimeoutConfig;
-use aws_sdk_s3::config::{Credentials, Region};
+use aws_sdk_s3::config::{Credentials, Region, StalledStreamProtectionConfig};
 use aws_sdk_s3::error::{ProvideErrorMetadata, SdkError};
 use aws_sdk_s3::Client;
 use serde::Serialize;
@@ -29,7 +29,10 @@ pub struct ObjectInfo {
 }
 
 /// Build an S3 client for the given profile and secret access key.
-pub async fn build_client(profile: &ConnectionProfile, secret_access_key: &str) -> AppResult<Client> {
+pub async fn build_client(
+    profile: &ConnectionProfile,
+    secret_access_key: &str,
+) -> AppResult<Client> {
     if profile.endpoint.trim().is_empty() {
         return Err(AppError::Config("The endpoint URL is empty.".into()));
     }
@@ -52,6 +55,10 @@ pub async fn build_client(profile: &ConnectionProfile, secret_access_key: &str) 
         .region(region)
         .credentials_provider(credentials)
         .endpoint_url(profile.endpoint.clone())
+        // Disable stalled-stream protection at the source: it false-aborts
+        // legitimate slow or bursty transfers (large downloads, flaky home
+        // networks). Our connect/attempt timeouts still bound a dead connection.
+        .stalled_stream_protection(StalledStreamProtectionConfig::disabled())
         .load()
         .await;
 
@@ -136,7 +143,9 @@ pub async fn list_objects(
             out.push(ObjectInfo {
                 key: key.to_string(),
                 size: obj.size().unwrap_or(0).max(0) as u64,
-                last_modified: obj.last_modified().and_then(|t| t.fmt(aws_smithy_types::date_time::Format::DateTime).ok()),
+                last_modified: obj
+                    .last_modified()
+                    .and_then(|t| t.fmt(aws_smithy_types::date_time::Format::DateTime).ok()),
             });
         }
     }

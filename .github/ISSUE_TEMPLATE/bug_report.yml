@@ -1,0 +1,45 @@
+name: Bug report
+description: Something doesn't work as expected
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for reporting! **Never paste your private key, secret access key,
+        or any decrypted data** — they are not needed to reproduce a bug.
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: What happened?
+      description: What did you do, what did you expect, and what happened instead?
+      placeholder: Steps to reproduce, expected vs. actual behaviour.
+    validations:
+      required: true
+  - type: dropdown
+    id: os
+    attributes:
+      label: Operating system
+      options:
+        - macOS
+        - Windows
+        - Linux
+    validations:
+      required: true
+  - type: input
+    id: version
+    attributes:
+      label: App version
+      description: Shown in the footer (e.g. v1.2.3).
+    validations:
+      required: true
+  - type: input
+    id: storage
+    attributes:
+      label: Storage type (optional)
+      description: AWS S3, MinIO, IONOS, Ceph, …
+  - type: textarea
+    id: logs
+    attributes:
+      label: Error message (optional)
+      description: The exact error text shown in the app (no secrets).
+      render: text

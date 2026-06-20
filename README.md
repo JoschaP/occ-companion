@@ -1,5 +1,10 @@
 # OCC Companion
 
+[![CI](https://github.com/JoschaP/occ-companion/actions/workflows/ci.yml/badge.svg)](https://github.com/JoschaP/occ-companion/actions/workflows/ci.yml)
+[![Release](https://github.com/JoschaP/occ-companion/actions/workflows/release.yml/badge.svg)](https://github.com/JoschaP/occ-companion/actions/workflows/release.yml)
+[![Latest release](https://img.shields.io/github/v/release/JoschaP/occ-companion?sort=semver)](https://github.com/JoschaP/occ-companion/releases)
+[![License: MIT](https://img.shields.io/badge/License-MIT-informational.svg)](LICENSE)
+
 A small, open-source desktop app that lets you pull your **age-encrypted data
 exports** out of your own S3 bucket and decrypt them — with no command line.
 
@@ -192,6 +197,28 @@ src-tauri/src/
   commands.rs            the Tauri command surface
   error.rs               serializable error type
 ```
+
+## Contributing
+
+Issues and pull requests are welcome. The project uses
+[Conventional Commits](https://www.conventionalcommits.org/) and an automated
+release flow — see [CONTRIBUTING.md](CONTRIBUTING.md) for setup, the test
+commands, and the commit/PR conventions. Please also read the
+[Code of Conduct](CODE_OF_CONDUCT.md).
+
+## Releases
+
+Releases are fully automated with
+[semantic-release](https://semantic-release.gitbook.io/). Merging Conventional
+Commits to `main` determines the next version, updates
+[`CHANGELOG.md`](CHANGELOG.md), tags, and publishes a GitHub Release; CI then
+builds and attaches the macOS / Windows / Linux bundles. Maintainers never tag
+by hand.
+
+## Security
+
+The private key never leaves your device. To report a vulnerability, see
+[SECURITY.md](SECURITY.md) — please use a private advisory, not a public issue.
 
 ## License
 

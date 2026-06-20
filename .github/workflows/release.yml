@@ -1,19 +1,57 @@
 name: Release
 
-# Build native bundles on each OS (no cross-compile) and attach them to a draft
-# GitHub release. Signing/notarization is wired via secrets — see README.
+# Push to main → semantic-release computes the next version from Conventional
+# Commits, updates the changelog + manifests, tags and creates a GitHub Release.
+# If a release was published, the matrix builds native bundles and uploads them.
 
 on:
   push:
-    tags:
-      - "v*"
+    branches: [main]
   workflow_dispatch:
+
+concurrency:
+  group: release
+  cancel-in-progress: false
 
 permissions:
   contents: write
+  issues: write
+  pull-requests: write
 
 jobs:
+  version:
+    name: Semantic release
+    runs-on: ubuntu-22.04
+    outputs:
+      published: ${{ steps.semantic.outputs.new_release_published }}
+      version: ${{ steps.semantic.outputs.new_release_version }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          persist-credentials: true
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      # cargo is needed by the prepare step (syncs Cargo.lock to the new version).
+      - uses: dtolnay/rust-toolchain@stable
+
+      - name: Semantic Release
+        id: semantic
+        uses: cycjimmy/semantic-release-action@v4
+        with:
+          semantic_version: 24
+          extra_plugins: |
+            @semantic-release/changelog@6
+            @semantic-release/git@10
+            @semantic-release/exec@6
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
   build:
+    name: Build bundles
+    needs: version
+    if: needs.version.outputs.published == 'true'
     strategy:
       fail-fast: false
       matrix:
@@ -26,10 +64,11 @@ jobs:
             args: ""
           - platform: windows-latest
             args: ""
-
     runs-on: ${{ matrix.platform }}
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: v${{ needs.version.outputs.version }}
 
       - name: Install Linux build dependencies
         if: matrix.platform == 'ubuntu-22.04'
@@ -37,15 +76,13 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y \
             libwebkit2gtk-4.1-dev \
-            libappindicator3-dev \
+            libayatana-appindicator3-dev \
             librsvg2-dev \
             patchelf \
             build-essential \
             cmake \
             nasm
 
-      # aws-lc-rs (the AWS SDK's default crypto backend) needs NASM to build its
-      # x86_64 assembly. CMake is preinstalled on all GitHub runners.
       - name: Install NASM (Windows)
         if: matrix.platform == 'windows-latest'
         uses: ilammy/setup-nasm@v1
@@ -57,17 +94,14 @@ jobs:
       - uses: pnpm/action-setup@v4
         with:
           version: 10
-
       - uses: actions/setup-node@v4
         with:
           node-version: 20
           cache: pnpm
 
-      - name: Install Rust (stable)
-        uses: dtolnay/rust-toolchain@stable
+      - uses: dtolnay/rust-toolchain@stable
         with:
           targets: ${{ matrix.platform == 'macos-latest' && 'aarch64-apple-darwin,x86_64-apple-darwin' || '' }}
-
       - uses: swatinem/rust-cache@v2
         with:
           workspaces: "src-tauri -> target"
@@ -75,23 +109,28 @@ jobs:
       - name: Install frontend dependencies
         run: pnpm install --frozen-lockfile
 
-      - name: Build, sign & release
+      - name: Build app bundles
+        id: tauri
         uses: tauri-apps/tauri-action@v0
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          # --- macOS signing & notarization (stubs) ---
+          # --- macOS signing & notarization (provide as secrets to enable) ---
           APPLE_CERTIFICATE: ${{ secrets.APPLE_CERTIFICATE }}
           APPLE_CERTIFICATE_PASSWORD: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
           APPLE_SIGNING_IDENTITY: ${{ secrets.APPLE_SIGNING_IDENTITY }}
           APPLE_ID: ${{ secrets.APPLE_ID }}
           APPLE_PASSWORD: ${{ secrets.APPLE_PASSWORD }}
           APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
-          # --- Windows Authenticode (stubs) ---
+          # --- Windows Authenticode (provide as secrets to enable) ---
           WINDOWS_CERTIFICATE: ${{ secrets.WINDOWS_CERTIFICATE }}
           WINDOWS_CERTIFICATE_PASSWORD: ${{ secrets.WINDOWS_CERTIFICATE_PASSWORD }}
         with:
-          tagName: ${{ github.ref_type == 'tag' && github.ref_name || format('v{0}', github.run_number) }}
-          releaseName: "OCC Companion ${{ github.ref_name }}"
-          releaseDraft: true
-          prerelease: false
           args: ${{ matrix.args }}
+
+      - name: Upload bundles to the release
+        shell: bash
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PATHS: ${{ join(fromJSON(steps.tauri.outputs.artifactPaths), '" "') }}
+        run: |
+          gh release upload "v${{ needs.version.outputs.version }}" "$PATHS" --clobber

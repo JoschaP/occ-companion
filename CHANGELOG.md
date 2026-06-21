@@ -1,3 +1,10 @@
+## [0.9.2](https://github.com/JoschaP/occ-secure-exports/compare/v0.9.1...v0.9.2) (2026-06-21)
+
+
+### Bug Fixes
+
+* **core:** degrade gracefully when the OS secure store is unavailable ([30bcb15](https://github.com/JoschaP/occ-secure-exports/commit/30bcb153221cce7bd6fb177a4533e88634cf6ef0))
+
 ## [0.9.1](https://github.com/JoschaP/occ-secure-exports/compare/v0.9.0...v0.9.1) (2026-06-21)
 
 

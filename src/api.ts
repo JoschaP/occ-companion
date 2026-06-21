@@ -7,6 +7,7 @@ import type {
   ConnectResult,
   Credentials,
   FileResult,
+  KeyCheck,
   KeyPair,
   ObjectInfo,
   ProgressEvent,
@@ -37,13 +38,7 @@ export const api = {
   connect: (profile: ConnectionProfile, creds: Credentials) =>
     invoke<ConnectResult>("connect", { profile, creds }),
 
-  checkKeys: (keys: string[]) =>
-    invoke<{
-      matches: number;
-      mismatches: number;
-      plain: number;
-      unknown: number;
-    }>("check_keys", { keys }),
+  checkKeys: (keys: string[]) => invoke<KeyCheck[]>("check_keys", { keys }),
 
   listObjects: (prefix?: string) =>
     invoke<ObjectInfo[]>("list_objects", { prefix: prefix ?? null }),

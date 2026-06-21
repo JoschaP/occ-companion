@@ -12,6 +12,7 @@ const mockApi = vi.hoisted(() => ({
   exportRescueKit: vi.fn(),
   secretStatus: vi.fn(),
   connect: vi.fn(),
+  checkKeys: vi.fn(),
   listObjects: vi.fn(),
   disconnect: vi.fn(),
   downloadDecrypt: vi.fn(),

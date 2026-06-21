@@ -40,6 +40,14 @@ export interface ObjectInfo {
   lastModified: string | null;
 }
 
+/** Per-object key-check outcome (mirrors Rust `KeyMatch`). */
+export type KeyMatchStatus = "match" | "mismatch" | "plain" | "unknown";
+
+export interface KeyCheck {
+  key: string;
+  status: KeyMatchStatus;
+}
+
 export interface ProgressEvent {
   key: string;
   done: number;

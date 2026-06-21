@@ -62,6 +62,21 @@ export function collectKeys(node: TreeNode): string[] {
   return (node.children ?? []).flatMap(collectKeys);
 }
 
+/**
+ * Keys of directly-selected nodes that are `.age` files — the only selection
+ * worth a key pre-check. Folders are excluded: a folder is not an encrypted
+ * file, so probing its contents would be both misleading ("key matches" on a
+ * folder) and wasteful (one range request per file inside).
+ */
+export function checkableAgeKeys(
+  nodes: Pick<TreeNode, "isFolder" | "key">[],
+): string[] {
+  return nodes
+    .filter((n) => !n.isFolder && n.key)
+    .map((n) => n.key as string)
+    .filter((k) => k.toLowerCase().endsWith(".age"));
+}
+
 export function formatBytes(n?: number): string {
   if (n === undefined) return "";
   if (n < 1024) return `${n} B`;

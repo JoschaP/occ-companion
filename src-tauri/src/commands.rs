@@ -283,20 +283,34 @@ pub async fn connect(
     Ok(result)
 }
 
-#[derive(Default, Serialize)]
+/// Per-object outcome of the key pre-check.
+#[derive(Debug, Clone, Copy, Serialize)]
+#[serde(rename_all = "lowercase")]
+pub enum KeyMatch {
+    /// `.age` file the connected key can decrypt.
+    Match,
+    /// `.age` file encrypted for a different key.
+    Mismatch,
+    /// Not an `.age` file — downloads as-is.
+    Plain,
+    /// Could not be determined (unreadable header, fetch error).
+    Unknown,
+}
+
+/// One object's key-check result. Returned per object so the frontend can
+/// cache outcomes per key (a header never changes within a listing).
+#[derive(Debug, Clone, Serialize)]
 #[serde(rename_all = "camelCase")]
-pub struct CheckSummary {
-    matches: u32,
-    mismatches: u32,
-    plain: u32,
-    unknown: u32,
+pub struct KeyCheck {
+    pub key: String,
+    pub status: KeyMatch,
 }
 
 /// Pre-flight: for the selected keys, check (via a small header range request)
-/// whether the connected key can decrypt each `.age` object. Non-age objects
-/// count as `plain` (they'll just download).
+/// whether the connected key can decrypt each `.age` object. Returns one entry
+/// per input key, in order; non-age objects come back as `plain`.
 #[tauri::command]
-pub async fn check_keys(state: State<'_, AppState>, keys: Vec<String>) -> AppResult<CheckSummary> {
+pub async fn check_keys(state: State<'_, AppState>, keys: Vec<String>) -> AppResult<Vec<KeyCheck>> {
     let (client, bucket, identities) = {
         let guard = state.session.lock().await;
         let session = guard.as_ref().ok_or(AppError::NotConnected)?;
@@ -307,22 +321,23 @@ pub async fn check_keys(state: State<'_, AppState>, keys: Vec<String>) -> AppRes
         )
     };
 
-    let mut summary = CheckSummary::default();
+    let mut out = Vec::with_capacity(keys.len());
     for key in keys {
-        if !key.to_ascii_lowercase().ends_with(".age") {
-            summary.plain += 1;
-            continue;
-        }
-        match s3::fetch_prefix(&client, &bucket, &key, 65535).await {
-            Ok(bytes) => match crypto::matches_key(&bytes, &identities) {
-                Some(true) => summary.matches += 1,
-                Some(false) => summary.mismatches += 1,
-                None => summary.unknown += 1,
-            },
-            Err(_) => summary.unknown += 1,
-        }
+        let status = if !key.to_ascii_lowercase().ends_with(".age") {
+            KeyMatch::Plain
+        } else {
+            match s3::fetch_prefix(&client, &bucket, &key, 65535).await {
+                Ok(bytes) => match crypto::matches_key(&bytes, &identities) {
+                    Some(true) => KeyMatch::Match,
+                    Some(false) => KeyMatch::Mismatch,
+                    None => KeyMatch::Unknown,
+                },
+                Err(_) => KeyMatch::Unknown,
+            }
+        };
+        out.push(KeyCheck { key, status });
     }
-    Ok(summary)
+    Ok(out)
 }
 
 #[tauri::command]

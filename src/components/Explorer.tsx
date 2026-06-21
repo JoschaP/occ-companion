@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Tree, type NodeApi, type NodeRendererProps } from "react-arborist";
 import {
   ActionIcon,
@@ -22,17 +22,17 @@ import {
   IconRefresh,
 } from "@tabler/icons-react";
 
-import type { ObjectInfo, TreeNode } from "../types";
-import { buildTree, collectKeys, formatBytes, formatDate } from "../lib/tree";
+import type { KeyMatchStatus, ObjectInfo, TreeNode } from "../types";
+import {
+  buildTree,
+  checkableAgeKeys,
+  collectKeys,
+  formatBytes,
+  formatDate,
+} from "../lib/tree";
+import { summarizeKeyChecks, type KeyCheckSummary } from "../lib/keycheck";
 import { Wordmark } from "./Wordmark";
 import { api } from "../api";
-
-interface KeyStatus {
-  matches: number;
-  mismatches: number;
-  plain: number;
-  unknown: number;
-}
 
 interface Props {
   bucket: string;
@@ -111,22 +111,51 @@ export function Explorer({
     [selectedKeys],
   );
 
+  // Only directly-selected .age *files* are worth a key pre-check — never a
+  // folder (see checkableAgeKeys).
+  const checkableKeys = useMemo(
+    () => checkableAgeKeys(selected.map((n) => n.data)),
+    [selected],
+  );
+
   // Pre-flight: can the connected key decrypt the selected .age files?
-  const [keyStatus, setKeyStatus] = useState<KeyStatus | null>(null);
-  const [checking, setChecking] = useState(false);
-  const selectionId = selectedKeys.join("\n");
+  // Results are cached per object key for the session — a header never changes
+  // within a listing, so re-visiting a file is instant (no request, no jank on
+  // fast navigation). The cache is cleared whenever the listing changes.
+  const checkCache = useRef<Map<string, KeyMatchStatus>>(new Map());
   useEffect(() => {
-    if (!selectedKeys.length || !hasAge) {
+    checkCache.current.clear();
+  }, [objects]);
+
+  const [keyStatus, setKeyStatus] = useState<KeyCheckSummary | null>(null);
+  const [checking, setChecking] = useState(false);
+  const selectionId = checkableKeys.join("\n");
+  useEffect(() => {
+    if (!checkableKeys.length) {
       setKeyStatus(null);
+      setChecking(false);
+      return;
+    }
+    // Show whatever we already know immediately (cache hit → no flicker).
+    setKeyStatus(summarizeKeyChecks(checkableKeys, checkCache.current));
+    const missing = checkableKeys.filter((k) => !checkCache.current.has(k));
+    if (!missing.length) {
+      setChecking(false);
       return;
     }
     let cancelled = false;
     setChecking(true);
     const t = setTimeout(() => {
       api
-        .checkKeys(selectedKeys)
-        .then((s) => !cancelled && setKeyStatus(s))
-        .catch(() => !cancelled && setKeyStatus(null))
+        .checkKeys(missing)
+        .then((results) => {
+          if (cancelled) return;
+          for (const r of results) checkCache.current.set(r.key, r.status);
+          setKeyStatus(summarizeKeyChecks(checkableKeys, checkCache.current));
+        })
+        .catch(() => {
+          /* keep the cached portion; transient errors shouldn't blank it */
+        })
         .finally(() => !cancelled && setChecking(false));
     }, 300);
     return () => {
@@ -134,7 +163,7 @@ export function Explorer({
       clearTimeout(t);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [selectionId, hasAge]);
+  }, [selectionId]);
   const totalSize = useMemo(
     () => objects.reduce((sum, o) => sum + o.size, 0),
     [objects],

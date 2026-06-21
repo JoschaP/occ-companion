@@ -226,6 +226,28 @@ app still works with **"ask each time"**. Object keys are sanitized so a `/` or
 
 ## Signing & notarization
 
+### Roadmap
+
+Releases are currently **unsigned**. They install and run on every platform, but
+the OS shows a one-time warning the first time you open the app (see
+[Install](#install)). Code signing is on the roadmap; the build machinery is
+already wired for it, so each stage below is "add the certificate + secrets",
+not "rebuild the pipeline".
+
+| Stage                                         | Status         | Blocked on                                  |
+| --------------------------------------------- | -------------- | ------------------------------------------- |
+| macOS notarization (Developer ID Application) | 🟡 Planned     | an Apple Developer Program membership       |
+| Windows Authenticode                          | 🟡 Planned     | an OV/EV code-signing certificate           |
+| Linux — detached GPG signature for AppImage   | ⚪ Considering | maintainer GPG key + published verify steps |
+| Reproducible-build attestation                | ⚪ Considering | nice-to-have once the above land            |
+
+Signing is gated only on obtaining the (paid) certificates above — there is no
+code work left. Contributions or sponsorship toward a certificate are welcome;
+open an issue if you'd like to help. Until then, install via Homebrew/Scoop,
+which smooths over the first-run prompts.
+
+### Enabling it
+
 Signing fields are stubbed in [`tauri.conf.json`](src-tauri/tauri.conf.json), and
 the release workflow ([`.github/workflows/release.yml`](.github/workflows/release.yml))
 documents exactly where to add the env vars. Builds are unsigned by default (an

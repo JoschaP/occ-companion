@@ -1,3 +1,10 @@
+# [0.3.0](https://github.com/JoschaP/occ-companion/compare/v0.2.1...v0.3.0) (2026-06-21)
+
+
+### Features
+
+* preserve folder structure on download, idle-disconnect, fewer keychain prompts ([c7fc27c](https://github.com/JoschaP/occ-companion/commit/c7fc27c3e68158f322d0672a756491ae8140e5c1))
+
 ## [0.2.1](https://github.com/JoschaP/occ-companion/compare/v0.2.0...v0.2.1) (2026-06-21)
 
 

@@ -1,0 +1,38 @@
+<svg width="1024" height="1024" viewBox="0 0 1024 1024" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="bg" x1="512" y1="0" x2="512" y2="1024" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#2E78EA"/>
+      <stop offset="0.5" stop-color="#0E5AC8"/>
+      <stop offset="1" stop-color="#00408F"/>
+    </linearGradient>
+    <radialGradient id="sheen" cx="0.32" cy="0.24" r="0.8">
+      <stop offset="0" stop-color="#FFFFFF" stop-opacity="0.20"/>
+      <stop offset="0.55" stop-color="#FFFFFF" stop-opacity="0"/>
+    </radialGradient>
+    <filter id="shadow" x="-25%" y="-25%" width="150%" height="150%">
+      <feDropShadow dx="0" dy="16" stdDeviation="24" flood-color="#001A40" flood-opacity="0.30"/>
+    </filter>
+  </defs>
+
+  <!-- OCC-blue rounded square -->
+  <rect width="1024" height="1024" rx="230" fill="url(#bg)"/>
+  <rect width="1024" height="1024" rx="230" fill="url(#sheen)"/>
+
+  <g filter="url(#shadow)">
+    <!-- document with a folded top-right corner -->
+    <path d="M332 232 L612 232 L740 360 L740 770 Q740 792 718 792 L354 792 Q332 792 332 770 Z" fill="#FFFFFF"/>
+    <path d="M612 232 L612 360 L740 360 Z" fill="#C9D8F0"/>
+  </g>
+
+  <!-- OCC wordmark -->
+  <text x="536" y="448" text-anchor="middle" font-family="Helvetica, Arial, sans-serif"
+        font-weight="700" font-size="150" letter-spacing="2" fill="#0054BC">OCC</text>
+
+  <!-- padlock -->
+  <g fill="none" stroke="#0054BC" stroke-width="26" stroke-linecap="round">
+    <path d="M492 596 L492 560 A44 44 0 0 1 580 560 L580 596"/>
+  </g>
+  <rect x="455" y="592" width="162" height="128" rx="22" fill="#0054BC"/>
+  <circle cx="536" cy="640" r="17" fill="#FFFFFF"/>
+  <path d="M528 652 L544 652 L549 690 L523 690 Z" fill="#FFFFFF"/>
+</svg>

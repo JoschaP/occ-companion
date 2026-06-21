@@ -36,7 +36,8 @@ back into plaintext, on your machine.
    - Non-`.age` objects **pass through unchanged** (the button reads just
      *“Download …”*).
    - Folder downloads **preserve the directory structure** under the destination.
-5. A progress dialog shows each file; everything is **fail-closed and atomic**
+5. A docked download sidebar shows a queue of every file with its progress
+   (plus *Show in folder* / *Retry* per item); everything is **fail-closed and atomic**
    (see the security model below).
 6. After a period of inactivity the connection auto-closes and the in-memory key
    is dropped (an active download keeps the session alive).
@@ -232,12 +233,13 @@ distribute a detached signature.
 
 ```
 src/                     React + Mantine frontend (OCC design system)
-  components/            ProfileList, ConnectionForm, KeygenDialog, Explorer, …
+  components/            ProfileList, ConnectionForm, KeygenDialog, Explorer,
+                         DownloadSidebar, UpdateDialog, …
   hooks/                 useIdleDisconnect (inactivity auto-disconnect)
   lib/tree.ts            S3 keys → folder tree, download plan, formatting
   lib/keycheck.ts        key pre-check cache + summary (per-key, TTL'd)
   api.ts                 typed bridge to the Rust commands
-  theme.ts               OCC Mantine theme (mirrors ../frontend)
+  theme.ts               OCC Mantine theme (mirrors the OCC web console)
 src-tauri/src/
   crypto.rs              age keygen, identity parsing, header probe, streaming decrypt
   s3.rs                  client build (path-style), paginated listing, range fetch

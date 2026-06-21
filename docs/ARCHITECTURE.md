@@ -54,7 +54,9 @@ The WebView can only talk to the core through the **Tauri command surface**
 
 | File | Responsibility |
 | --- | --- |
-| `App.tsx` | Orchestrator: view state (list / form / explorer), download progress modal, idle auto-disconnect wiring |
+| `App.tsx` | Orchestrator: view state (list / form / explorer), download queue state, update check, idle auto-disconnect wiring |
+| `components/DownloadSidebar.tsx` | Docked download queue: per-file progress, show-in-folder, retry |
+| `components/UpdateDialog.tsx` | "Update available" dialog with per-OS upgrade instructions |
 | `components/Explorer.tsx` | Bucket tree, multi-select, key pre-check, download trigger, status bar |
 | `components/ConnectionForm.tsx` | Add/edit a connection; key entry / generation |
 | `components/KeygenDialog.tsx` | Generate a key pair; enforce Rescue Kit download |

@@ -1,4 +1,4 @@
-// OCC design tokens, mirrored from the OCC web console (../frontend).
+// OCC design tokens, mirrored from the OCC web console.
 // Same primary blue scale, gray/status scales, fonts and radii so the app
 // is visually part of the OCC family.
 

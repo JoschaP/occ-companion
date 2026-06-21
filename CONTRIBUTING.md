@@ -21,6 +21,26 @@ pnpm install
 pnpm tauri dev      # run the app
 ```
 
+### Task runner & dev shortcuts
+
+A [`justfile`](justfile) bundles the common commands — run `just` to list them:
+
+```bash
+just dev        # run the app
+just check      # everything CI runs (typecheck + tests + fmt + clippy)
+just test       # frontend + Rust tests
+just e2e        # e2e tests against the bucket (needs .env.test)
+just seed       # seed demo data into the test bucket
+just build      # production bundles
+```
+
+**Dev auto-seed:** if `.env.development.local` exists (gitignored), `just dev`
+auto-creates a "Demo (dev)" connection so you don't re-enter test data. It is
+dev-only (`import.meta.env.DEV`) and never runs in production builds. Seed it
+from your `.env.test` values with `VITE_DEV_ENDPOINT`, `VITE_DEV_BUCKET`,
+`VITE_DEV_REGION`, `VITE_DEV_ACCESS_KEY_ID`, `VITE_DEV_SECRET`,
+`VITE_DEV_PATH_STYLE`, `VITE_DEV_AGE_KEY`.
+
 ## Checks (run before pushing)
 
 ```bash

@@ -42,7 +42,7 @@ jobs:
 
       - name: Checkout app (for the generator)
         if: steps.guard.outputs.ok == 'true'
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
         with:
           path: app
 
@@ -66,7 +66,7 @@ jobs:
 
       - name: Checkout homebrew-tap
         if: steps.guard.outputs.ok == 'true'
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
         with:
           repository: JoschaP/homebrew-tap
           ssh-key: ${{ secrets.HOMEBREW_TAP_DEPLOY_KEY }}
@@ -74,7 +74,7 @@ jobs:
 
       - name: Checkout scoop-bucket
         if: steps.guard.outputs.ok == 'true'
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
         with:
           repository: JoschaP/scoop-bucket
           ssh-key: ${{ secrets.SCOOP_BUCKET_DEPLOY_KEY }}

@@ -1,3 +1,10 @@
+# [0.2.0](https://github.com/JoschaP/occ-companion/compare/v0.1.1...v0.2.0) (2026-06-21)
+
+
+### Features
+
+* pass through non-age files and pre-check key on selection ([c1e02c7](https://github.com/JoschaP/occ-companion/commit/c1e02c76862b13a8fec40c7fa055543c8c573cdb))
+
 ## [0.1.1](https://github.com/JoschaP/occ-companion/compare/v0.1.0...v0.1.1) (2026-06-21)
 
 

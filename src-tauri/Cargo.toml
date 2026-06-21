@@ -1,6 +1,6 @@
 [package]
 name = "occ-companion"
-version = "0.1.1"
+version = "0.2.0"
 description = "Retrieve & decrypt your OCC data exports"
 authors = ["Joscha Prasse <j.prasse@beazubi.de>"]
 edition = "2021"

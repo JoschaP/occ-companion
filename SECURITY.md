@@ -24,8 +24,9 @@ versioning; security fixes ship as patch releases.
 ## Security model (what we guarantee)
 
 - **The private key never leaves the device.** No telemetry, no analytics, no
-  phone-home. The only outbound connection is to the user-configured S3
-  endpoint.
+  phone-home. The only outbound connections are to the user-configured S3
+  endpoint and a version check against the GitHub releases API; both run in the
+  Rust core, never the WebView.
 - **The WebView cannot reach the network.** A strict Content-Security-Policy
   (`default-src 'self'`) confines the UI; all S3 traffic runs in the Rust core,
   so key material in the UI cannot be exfiltrated by a frontend request.

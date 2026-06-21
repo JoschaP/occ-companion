@@ -17,6 +17,7 @@ use commands::AppState;
 pub fn run() {
     tauri::Builder::default()
         .plugin(tauri_plugin_dialog::init())
+        .plugin(tauri_plugin_opener::init())
         .manage(AppState::default())
         .invoke_handler(tauri::generate_handler![
             commands::generate_keypair,
@@ -32,6 +33,7 @@ pub fn run() {
             commands::list_objects,
             commands::disconnect,
             commands::download_decrypt,
+            commands::check_update,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

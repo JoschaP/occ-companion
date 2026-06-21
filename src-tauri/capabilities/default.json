@@ -9,6 +9,11 @@
     "core:window:allow-set-size",
     "core:window:allow-center",
     "dialog:default",
-    "dialog:allow-save"
+    "dialog:allow-save",
+    "opener:allow-reveal-item-in-dir",
+    {
+      "identifier": "opener:allow-open-url",
+      "allow": [{ "url": "https://github.com/*" }]
+    }
   ]
 }

@@ -16,6 +16,7 @@ const mockApi = vi.hoisted(() => ({
   listObjects: vi.fn(),
   disconnect: vi.fn(),
   downloadDecrypt: vi.fn(),
+  checkUpdate: vi.fn(),
 }));
 
 vi.mock("./api", () => ({
@@ -40,6 +41,10 @@ vi.mock("@tauri-apps/api/window", () => ({
 vi.mock("@tauri-apps/api/app", () => ({
   getVersion: () => Promise.resolve("0.1.0"),
 }));
+vi.mock("@tauri-apps/plugin-opener", () => ({
+  openUrl: vi.fn(),
+  revealItemInDir: vi.fn(),
+}));
 
 import App from "./App";
 import { renderUI } from "./test/util";
@@ -60,6 +65,12 @@ const profile = {
 beforeEach(() => {
   vi.clearAllMocks();
   mockApi.listProfiles.mockResolvedValue([]);
+  mockApi.checkUpdate.mockResolvedValue({
+    current: "0.1.0",
+    latest: "0.1.0",
+    updateAvailable: false,
+    url: "",
+  });
 });
 
 describe("App — connections flow", () => {

@@ -6,6 +6,7 @@
 use std::path::PathBuf;
 use std::sync::atomic::{AtomicU64, Ordering};
 use std::sync::Arc;
+use std::time::Duration;
 
 use aws_sdk_s3::Client;
 use serde::{Deserialize, Serialize};
@@ -392,6 +393,86 @@ pub async fn disconnect(state: State<'_, AppState>) -> AppResult<()> {
     Ok(())
 }
 
+const RELEASES_URL: &str = "https://github.com/JoschaP/occ-secure-exports/releases";
+
+/// Result of the update check.
+#[derive(Debug, Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct UpdateInfo {
+    pub current: String,
+    pub latest: String,
+    pub update_available: bool,
+    pub url: String,
+}
+
+/// Check the GitHub releases API for a newer version. This is the *only*
+/// outbound connection besides the configured S3 endpoint. It runs in the core
+/// (the WebView CSP forbids network egress), and fails soft: any error returns
+/// `update_available: false` so an offline machine is never disrupted.
+#[tauri::command]
+pub async fn check_update(app: AppHandle) -> AppResult<UpdateInfo> {
+    let current = app.package_info().version.to_string();
+    let fallback = UpdateInfo {
+        current: current.clone(),
+        latest: current.clone(),
+        update_available: false,
+        url: RELEASES_URL.to_string(),
+    };
+
+    let client = match reqwest::Client::builder()
+        .timeout(Duration::from_secs(8))
+        .build()
+    {
+        Ok(c) => c,
+        Err(_) => return Ok(fallback),
+    };
+
+    let resp = client
+        .get("https://api.github.com/repos/JoschaP/occ-secure-exports/releases/latest")
+        .header("User-Agent", "occ-secure-exports")
+        .header("Accept", "application/vnd.github+json")
+        .send()
+        .await;
+    let resp = match resp {
+        Ok(r) if r.status().is_success() => r,
+        _ => return Ok(fallback),
+    };
+    let json: serde_json::Value = match resp.json().await {
+        Ok(j) => j,
+        Err(_) => return Ok(fallback),
+    };
+
+    let latest = json["tag_name"]
+        .as_str()
+        .unwrap_or("")
+        .trim_start_matches('v')
+        .to_string();
+    if latest.is_empty() {
+        return Ok(fallback);
+    }
+    let url = json["html_url"].as_str().unwrap_or(RELEASES_URL).to_string();
+    let update_available = version_gt(&latest, &current);
+    Ok(UpdateInfo {
+        current,
+        latest,
+        update_available,
+        url,
+    })
+}
+
+/// True if semver `a` (major.minor.patch) is strictly newer than `b`. Missing
+/// or non-numeric parts are treated as 0 — good enough for our `x.y.z` tags.
+fn version_gt(a: &str, b: &str) -> bool {
+    let parse = |s: &str| -> [u64; 3] {
+        let mut out = [0u64; 3];
+        for (i, part) in s.split('.').take(3).enumerate() {
+            out[i] = part.trim().parse().unwrap_or(0);
+        }
+        out
+    };
+    parse(a) > parse(b)
+}
+
 /// Download and decrypt the selected keys into `dest_dir`. Emits
 /// `download://progress` per chunk (throttled) and returns a per-file summary.
 #[tauri::command]
@@ -468,5 +549,23 @@ fn progress_emitter(app: AppHandle, key: String) -> impl Fn(u64, u64) + Send + '
                 },
             );
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::version_gt;
+
+    #[test]
+    fn version_gt_compares_semver() {
+        assert!(version_gt("0.7.0", "0.6.0"));
+        assert!(version_gt("1.0.0", "0.9.9"));
+        assert!(version_gt("0.6.1", "0.6.0"));
+        assert!(!version_gt("0.6.0", "0.6.0"));
+        assert!(!version_gt("0.6.0", "0.7.0"));
+        assert!(!version_gt("0.5.9", "0.6.0"));
+        // Missing/odd parts default to 0.
+        assert!(version_gt("0.6", "0.5.9"));
+        assert!(!version_gt("garbage", "0.1.0"));
     }
 }

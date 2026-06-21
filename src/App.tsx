@@ -19,13 +19,19 @@ import { getVersion } from "@tauri-apps/api/app";
 import type { UnlistenFn } from "@tauri-apps/api/event";
 
 import { api, onFileDone, onProgress } from "./api";
-import type { ConnectionProfile, ConnectResult, Credentials } from "./types";
+import type {
+  ConnectionProfile,
+  ConnectResult,
+  Credentials,
+  UpdateInfo,
+} from "./types";
 import { formatBytes, type DownloadPlanItem } from "./lib/tree";
 import { useIdleDisconnect } from "./hooks/useIdleDisconnect";
 import { ProfileList } from "./components/ProfileList";
 import { ConnectionForm } from "./components/ConnectionForm";
 import { Explorer } from "./components/Explorer";
 import { KeygenDialog } from "./components/KeygenDialog";
+import { UpdateDialog } from "./components/UpdateDialog";
 import { Footer } from "./components/Footer";
 
 type View = "list" | "form" | "explorer";
@@ -76,10 +82,17 @@ export default function App() {
 
   const [dl, setDl] = useState<DlState>({ open: false, dest: "", items: {} });
   const [version, setVersion] = useState("");
+  const [update, setUpdate] = useState<UpdateInfo | null>(null);
+  const [updateOpen, setUpdateOpen] = useState(false);
 
   useEffect(() => {
     getVersion()
       .then(setVersion)
+      .catch(() => {});
+    // Check GitHub releases for a newer version (soft-fails offline).
+    api
+      .checkUpdate()
+      .then(setUpdate)
       .catch(() => {});
   }, []);
 
@@ -440,7 +453,11 @@ export default function App() {
               )}
             </div>
           </div>
-          <Footer version={version} />
+          <Footer
+            version={version}
+            updateAvailable={update?.updateAvailable}
+            onUpdateClick={() => setUpdateOpen(true)}
+          />
         </div>
       )}
 
@@ -451,6 +468,12 @@ export default function App() {
           setInjectedKey(key);
           if (view !== "form") setView("form");
         }}
+      />
+
+      <UpdateDialog
+        opened={updateOpen}
+        onClose={() => setUpdateOpen(false)}
+        info={update}
       />
 
       <Modal

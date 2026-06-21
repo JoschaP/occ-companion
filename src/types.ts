@@ -40,6 +40,14 @@ export interface ObjectInfo {
   lastModified: string | null;
 }
 
+/** Result of the GitHub releases update check (mirrors Rust `UpdateInfo`). */
+export interface UpdateInfo {
+  current: string;
+  latest: string;
+  updateAvailable: boolean;
+  url: string;
+}
+
 /** Per-object key-check outcome (mirrors Rust `KeyMatch`). */
 export type KeyMatchStatus = "match" | "mismatch" | "plain" | "unknown";
 

@@ -74,8 +74,10 @@ Grab the installer for your OS from the
 This is the whole promise of the product, so it is built to be auditable:
 
 - **The private key never leaves the device.** No telemetry, no analytics, no
-  phone-home. The *only* outbound network connection is to the S3 endpoint you
-  configure.
+  phone-home. The only outbound connections are to the S3 endpoint you configure
+  and a version check against the **GitHub releases API** (to tell you when an
+  update is out — it sends nothing but the request). Both happen in the Rust
+  core, never the WebView.
 - **The WebView cannot reach the network.** A strict Content-Security-Policy
   (`default-src 'self'`) is set in [`tauri.conf.json`](src-tauri/tauri.conf.json).
   All S3 traffic happens in the Rust core (`aws-sdk-s3`), never in the browser

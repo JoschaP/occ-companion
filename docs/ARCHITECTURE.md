@@ -43,6 +43,10 @@ The WebView can only talk to the core through the **Tauri command surface**
 - All S3 traffic and all `age` operations run in Rust. The private key, once
   parsed, is held as `age::Identity` values inside the in-memory `Session` and is
   **never serialized back to the frontend**.
+- The only outbound connections are the configured **S3 endpoint** and a
+  **version check** against the GitHub releases API (`check_update`) — both in
+  the core. The update check fails soft (offline → "no update") and sends
+  nothing but the request.
 
 ## Components
 

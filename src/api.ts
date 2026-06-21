@@ -13,6 +13,7 @@ import type {
   ObjectInfo,
   ProgressEvent,
   SecretStatus,
+  UpdateInfo,
 } from "./types";
 
 export const api = {
@@ -45,6 +46,8 @@ export const api = {
     invoke<ObjectInfo[]>("list_objects", { prefix: prefix ?? null }),
 
   disconnect: () => invoke<void>("disconnect"),
+
+  checkUpdate: () => invoke<UpdateInfo>("check_update"),
 
   downloadDecrypt: (items: DownloadItem[], destDir: string) =>
     invoke<FileResult[]>("download_decrypt", { items, destDir }),

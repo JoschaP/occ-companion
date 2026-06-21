@@ -21,13 +21,25 @@ back into plaintext, on your machine.
 ## What it does
 
 1. You enter your S3 connection (endpoint, region, bucket, access key, path-style
-   toggle) and your **age private key** — or generate a fresh key pair in-app.
+   toggle) and your **age private key** — or generate a fresh key pair in-app
+   (with an enforced **Rescue Kit** download so the key is never lost).
 2. It shows a **single file explorer** of the bucket: a folder tree grouped by key
    prefix, with names, sizes and dates, and multi-select.
-3. You select one or more objects and click **“Download & decrypt”**, then pick a
-   folder. Each file is streamed, decrypted on the fly, and saved there.
-4. Files are saved **without** the `.age` extension (`export.json.age` →
-   `export.json`).
+3. On selection it does a **key pre-check** — a tiny range request reads just the
+   `age` header to tell you up front whether your key can decrypt the selection
+   (*"key matches"* / *"key can't decrypt N"*), without downloading the files.
+4. You pick files **or whole folders** and click **“Download …”**, then choose a
+   destination:
+   - `.age` objects are **streamed and decrypted on the fly**, saved without the
+     `.age` extension (`export.json.age` → `export.json`). The button reads
+     *“Download … & decrypt”*.
+   - Non-`.age` objects **pass through unchanged** (the button reads just
+     *“Download …”*).
+   - Folder downloads **preserve the directory structure** under the destination.
+5. A progress dialog shows each file; everything is **fail-closed and atomic**
+   (see the security model below).
+6. After a period of inactivity the connection auto-closes and the in-memory key
+   is dropped (an active download keeps the session alive).
 
 ---
 
@@ -175,9 +187,11 @@ app still works with **"ask each time"**. Object keys are sanitized so a `/` or
 
 ## Signing & notarization
 
-Stubs are wired in [`tauri.conf.json`](src-tauri/tauri.conf.json) and the CI
-workflow ([`.github/workflows/release.yml`](.github/workflows/release.yml)).
-Provide these as CI secrets / environment variables to produce signed, notarized
+Signing fields are stubbed in [`tauri.conf.json`](src-tauri/tauri.conf.json), and
+the release workflow ([`.github/workflows/release.yml`](.github/workflows/release.yml))
+documents exactly where to add the env vars. Builds are unsigned by default (an
+empty `APPLE_CERTIFICATE` would break macOS bundling); provide the secrets below
+and add the matching env vars to the build step to produce signed, notarized
 builds.
 
 ### macOS (Apple notarization)
@@ -213,18 +227,23 @@ distribute a detached signature.
 
 ```
 src/                     React + Mantine frontend (OCC design system)
-  components/            ProfileList, ConnectionForm, KeygenDialog, Explorer
-  lib/tree.ts            S3 keys → folder tree, formatting
+  components/            ProfileList, ConnectionForm, KeygenDialog, Explorer, …
+  hooks/                 useIdleDisconnect (inactivity auto-disconnect)
+  lib/tree.ts            S3 keys → folder tree, download plan, formatting
+  lib/keycheck.ts        key pre-check cache + summary (per-key, TTL'd)
   api.ts                 typed bridge to the Rust commands
   theme.ts               OCC Mantine theme (mirrors ../frontend)
 src-tauri/src/
-  crypto.rs              age keygen, identity parsing, streaming decrypt
-  s3.rs                  client build (path-style), paginated listing
+  crypto.rs              age keygen, identity parsing, header probe, streaming decrypt
+  s3.rs                  client build (path-style), paginated listing, range fetch
   download.rs            stream → decrypt → temp → atomic rename (fail-closed)
-  profile.rs             profiles (JSON) + secrets (OS secure store)
+  profile.rs             profiles (JSON) + bundled secrets (OS secure store)
   commands.rs            the Tauri command surface
   error.rs               serializable error type
 ```
+
+A deeper walkthrough of the data flow and threat model lives in
+[`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md).
 
 ## Contributing
 

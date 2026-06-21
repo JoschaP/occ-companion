@@ -21,6 +21,12 @@ pnpm install
 pnpm tauri dev      # run the app
 ```
 
+New here? [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) explains the trust
+boundary, the components, and the data flows — the fastest way to get oriented.
+
+Copy [`.env.example`](.env.example) to set up local test/dev credentials (see
+below); real values never get committed.
+
 ### Task runner & dev shortcuts
 
 A [`justfile`](justfile) bundles the common commands. Install
@@ -60,10 +66,10 @@ CI runs the same checks on every pull request.
 
 ### Testing against a real bucket (optional)
 
-The `e2e` tests skip unless `.env.test` exists at the repo root. To run them,
-create one with `OCC_TEST_ENDPOINT`, `OCC_TEST_BUCKET`, `OCC_TEST_REGION`,
-`OCC_TEST_ACCESS_KEY_ID`, `OCC_TEST_SECRET_ACCESS_KEY`, `OCC_TEST_PATH_STYLE`.
-Use a throwaway, bucket-scoped credential. This file must never be committed.
+The `e2e` tests skip unless `.env.test` exists at the repo root. Copy the
+`OCC_TEST_*` block from [`.env.example`](.env.example) into `.env.test` and fill
+in a **throwaway, bucket-scoped** credential plus a demo age key pair. This file
+is gitignored and must never be committed.
 
 ## Commits & pull requests
 

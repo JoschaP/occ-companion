@@ -209,6 +209,19 @@ export function Explorer({
     [objects],
   );
 
+  // Size of the current selection (sum of the files the download would fetch),
+  // so the status bar reacts as you navigate/select instead of always showing
+  // the bucket total.
+  const sizeByKey = useMemo(() => {
+    const m = new Map<string, number>();
+    for (const o of objects) m.set(o.key, o.size);
+    return m;
+  }, [objects]);
+  const selectionSize = useMemo(
+    () => plan.reduce((sum, p) => sum + (sizeByKey.get(p.key) ?? 0), 0),
+    [plan, sizeByKey],
+  );
+
   return (
     <div className="explorer">
       <Group className="toolbar" gap="sm" wrap="nowrap">
@@ -315,8 +328,9 @@ export function Explorer({
 
       <Group className="statusbar" justify="space-between" wrap="nowrap" gap="sm">
         <Text size="xs" c="dimmed">
-          {objects.length} object{objects.length === 1 ? "" : "s"} ·{" "}
-          {formatBytes(totalSize)} total
+          {plan.length > 0
+            ? `${plan.length} file${plan.length === 1 ? "" : "s"} selected · ${formatBytes(selectionSize)}`
+            : `${objects.length} object${objects.length === 1 ? "" : "s"} · ${formatBytes(totalSize)} total`}
         </Text>
         <Group gap={6} wrap="nowrap" style={{ flexShrink: 0 }}>
           <IconLock size={12} color="var(--mantine-color-dimmed)" />

@@ -97,7 +97,11 @@ fn write_profiles(config_dir: &Path, profiles: &[ConnectionProfile]) -> AppResul
     std::fs::create_dir_all(config_dir)?;
     let path = profiles_path(config_dir);
     let json = serde_json::to_string_pretty(profiles)?;
-    std::fs::write(&path, json)?;
+    // Write atomically (temp + rename) so a crash mid-write can't leave a torn
+    // JSON file that wipes the user's connections on next load.
+    let tmp = path.with_extension("json.tmp");
+    std::fs::write(&tmp, json)?;
+    std::fs::rename(&tmp, &path)?;
     Ok(())
 }
 
@@ -147,7 +151,11 @@ fn legacy_delete(id: &str, kind: LegacyKind) {
 /// entry (and the old ones removed) so subsequent connects prompt only once.
 pub fn get_secrets(id: &str) -> AppResult<StoredSecrets> {
     match creds_entry(id)?.get_password() {
-        Ok(json) => Ok(serde_json::from_str(&json).unwrap_or_default()),
+        // A malformed entry must not silently read as "no secrets" — that would
+        // look like the user never saved them. Surface it so they re-enter.
+        Ok(json) => serde_json::from_str(&json).map_err(|_| {
+            AppError::Keyring("the stored credentials are corrupted; please re-enter them".into())
+        }),
         Err(keyring::Error::NoEntry) => migrate_legacy(id),
         Err(e) => Err(AppError::from(e)),
     }

@@ -138,7 +138,14 @@ pub async fn fetch_prefix(
     Ok(data.into_bytes().to_vec())
 }
 
-/// List every object under `prefix` (paginated, follows continuation tokens).
+/// Safety cap on how many objects a listing will load — guards against a
+/// pathologically large bucket exhausting memory (and the UI). Far above any
+/// realistic export delivery.
+const MAX_OBJECTS: usize = 50_000;
+
+/// List objects under `prefix` (paginated, follows continuation tokens), up to
+/// `MAX_OBJECTS`. Stops early past the cap rather than loading an unbounded
+/// listing into memory and over IPC.
 pub async fn list_objects(
     client: &Client,
     bucket: &str,
@@ -156,7 +163,7 @@ pub async fn list_objects(
         .into_paginator()
         .send();
 
-    while let Some(page) = paginator.next().await {
+    'pages: while let Some(page) = paginator.next().await {
         let page = page.map_err(|e| AppError::S3(friendly_s3(&e)))?;
         for obj in page.contents() {
             let Some(key) = obj.key() else { continue };
@@ -171,6 +178,9 @@ pub async fn list_objects(
                     .last_modified()
                     .and_then(|t| t.fmt(aws_smithy_types::date_time::Format::DateTime).ok()),
             });
+            if out.len() >= MAX_OBJECTS {
+                break 'pages;
+            }
         }
     }
 

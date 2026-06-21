@@ -146,19 +146,46 @@ pub fn generate_keypair() -> KeyPairDto {
     }
 }
 
+/// Write secret material so it is owner-only **from creation** — on unix the
+/// file is opened with mode 0600 (no world-readable window between create and
+/// chmod), and existing-file permissions are tightened too. Errors propagate so
+/// a failed chmod never silently leaves a key world-readable. On Windows the
+/// file inherits the user-profile ACL (owner-only by default).
+fn write_secret_file(path: &std::path::Path, contents: &str) -> AppResult<()> {
+    #[cfg(unix)]
+    {
+        use std::io::Write;
+        use std::os::unix::fs::{OpenOptionsExt, PermissionsExt};
+        let mut f = std::fs::OpenOptions::new()
+            .write(true)
+            .create(true)
+            .truncate(true)
+            .mode(0o600)
+            .open(path)?;
+        f.set_permissions(std::fs::Permissions::from_mode(0o600))?;
+        f.write_all(contents.as_bytes())?;
+        f.sync_all()?;
+        Ok(())
+    }
+    #[cfg(not(unix))]
+    {
+        std::fs::write(path, contents.as_bytes())?;
+        Ok(())
+    }
+}
+
 /// Write text to a user-chosen path. For secret material (`restrict = true`)
-/// the file is created with owner-only permissions (0600) on unix. The path
-/// comes from the native save dialog, so the user authorizes the location.
+/// the file is created owner-only (see `write_secret_file`). The path comes
+/// from the native save dialog, so the user authorizes the location.
 #[tauri::command]
 pub fn save_text_file(path: String, contents: String, restrict: bool) -> AppResult<()> {
     let path = PathBuf::from(path);
-    std::fs::write(&path, contents.as_bytes())?;
-    #[cfg(unix)]
     if restrict {
-        use std::os::unix::fs::PermissionsExt;
-        let _ = std::fs::set_permissions(&path, std::fs::Permissions::from_mode(0o600));
+        write_secret_file(&path, &contents)
+    } else {
+        std::fs::write(&path, contents.as_bytes())?;
+        Ok(())
     }
-    Ok(())
 }
 
 #[tauri::command]
@@ -229,14 +256,7 @@ pub fn export_rescue_kit(id: String, path: String) -> AppResult<()> {
     let public = crypto::public_key_for(&material);
     let kit = rescue_kit_text(public.as_deref(), &material);
 
-    let path = PathBuf::from(path);
-    std::fs::write(&path, kit.as_bytes())?;
-    #[cfg(unix)]
-    {
-        use std::os::unix::fs::PermissionsExt;
-        let _ = std::fs::set_permissions(&path, std::fs::Permissions::from_mode(0o600));
-    }
-    Ok(())
+    write_secret_file(&PathBuf::from(path), &kit)
 }
 
 /// A human-readable recovery document; for age keys it is also a valid age
@@ -343,10 +363,13 @@ pub struct KeyCheck {
 }
 
 /// Pre-flight: for the selected keys, check (via a small header range request)
-/// whether the connected key can decrypt each `.age` object. Returns one entry
-/// per input key, in order; non-age objects come back as `plain`.
+/// whether the connected key can decrypt each `.age` object. Non-age objects
+/// come back as `plain`. Range requests run concurrently (bounded) so a large
+/// selection doesn't block on dozens of sequential round-trips.
 #[tauri::command]
 pub async fn check_keys(state: State<'_, AppState>, keys: Vec<String>) -> AppResult<Vec<KeyCheck>> {
+    use futures::stream::StreamExt;
+
     let (client, bucket, identities) = {
         let guard = state.session.lock().await;
         let session = guard.as_ref().ok_or(AppError::NotConnected)?;
@@ -357,22 +380,31 @@ pub async fn check_keys(state: State<'_, AppState>, keys: Vec<String>) -> AppRes
         )
     };
 
-    let mut out = Vec::with_capacity(keys.len());
-    for key in keys {
-        let status = if !key.to_ascii_lowercase().ends_with(".age") {
-            KeyMatch::Plain
-        } else {
-            match s3::fetch_prefix(&client, &bucket, &key, 65535).await {
-                Ok(bytes) => match crypto::matches_key(&bytes, &identities) {
-                    Some(true) => KeyMatch::Match,
-                    Some(false) => KeyMatch::Mismatch,
-                    None => KeyMatch::Unknown,
-                },
-                Err(_) => KeyMatch::Unknown,
+    let out = futures::stream::iter(keys)
+        .map(|key| {
+            let client = client.clone();
+            let bucket = bucket.clone();
+            let identities = identities.clone();
+            async move {
+                let status = if !key.to_ascii_lowercase().ends_with(".age") {
+                    KeyMatch::Plain
+                } else {
+                    match s3::fetch_prefix(&client, &bucket, &key, 65535).await {
+                        Ok(bytes) => match crypto::matches_key(&bytes, &identities) {
+                            Some(true) => KeyMatch::Match,
+                            Some(false) => KeyMatch::Mismatch,
+                            None => KeyMatch::Unknown,
+                        },
+                        Err(_) => KeyMatch::Unknown,
+                    }
+                };
+                KeyCheck { key, status }
             }
-        };
-        out.push(KeyCheck { key, status });
-    }
+        })
+        .buffer_unordered(8)
+        .collect::<Vec<_>>()
+        .await;
+
     Ok(out)
 }
 
@@ -442,33 +474,47 @@ pub async fn check_update(app: AppHandle) -> AppResult<UpdateInfo> {
         Err(_) => return Ok(fallback),
     };
 
+    Ok(parse_update(&json, &current))
+}
+
+/// Decide the update outcome from a GitHub releases JSON payload. Pure (no I/O)
+/// so it can be unit-tested; falls back to "no update" when the payload lacks a
+/// usable tag.
+fn parse_update(json: &serde_json::Value, current: &str) -> UpdateInfo {
+    let fallback = UpdateInfo {
+        current: current.to_string(),
+        latest: current.to_string(),
+        update_available: false,
+        url: RELEASES_URL.to_string(),
+    };
     let latest = json["tag_name"]
         .as_str()
         .unwrap_or("")
         .trim_start_matches('v')
         .to_string();
     if latest.is_empty() {
-        return Ok(fallback);
+        return fallback;
     }
     let url = json["html_url"]
         .as_str()
         .unwrap_or(RELEASES_URL)
         .to_string();
-    let update_available = version_gt(&latest, &current);
-    Ok(UpdateInfo {
-        current,
+    UpdateInfo {
+        current: current.to_string(),
+        update_available: version_gt(&latest, current),
         latest,
-        update_available,
         url,
-    })
+    }
 }
 
-/// True if semver `a` (major.minor.patch) is strictly newer than `b`. Missing
-/// or non-numeric parts are treated as 0 — good enough for our `x.y.z` tags.
+/// True if semver `a` (major.minor.patch) is strictly newer than `b`. A
+/// pre-release suffix (`-beta.1`) is stripped before comparing, and missing or
+/// non-numeric parts are treated as 0 — good enough for our `x.y.z` tags.
 fn version_gt(a: &str, b: &str) -> bool {
     let parse = |s: &str| -> [u64; 3] {
+        let core = s.split('-').next().unwrap_or(s);
         let mut out = [0u64; 3];
-        for (i, part) in s.split('.').take(3).enumerate() {
+        for (i, part) in core.split('.').take(3).enumerate() {
             out[i] = part.trim().parse().unwrap_or(0);
         }
         out
@@ -557,7 +603,7 @@ fn progress_emitter(app: AppHandle, key: String) -> impl Fn(u64, u64) + Send + '
 
 #[cfg(test)]
 mod tests {
-    use super::version_gt;
+    use super::{parse_update, version_gt};
 
     #[test]
     fn version_gt_compares_semver() {
@@ -570,5 +616,37 @@ mod tests {
         // Missing/odd parts default to 0.
         assert!(version_gt("0.6", "0.5.9"));
         assert!(!version_gt("garbage", "0.1.0"));
+        // Pre-release suffix is stripped before comparing.
+        assert!(!version_gt("1.0.0-beta.1", "1.0.0"));
+        assert!(version_gt("1.0.1-beta.1", "1.0.0"));
+    }
+
+    #[test]
+    fn parse_update_reads_tag_and_decides() {
+        let json = serde_json::json!({
+            "tag_name": "v0.9.0",
+            "html_url": "https://github.com/JoschaP/occ-secure-exports/releases/tag/v0.9.0"
+        });
+        let info = parse_update(&json, "0.8.0");
+        assert_eq!(info.latest, "0.9.0"); // 'v' stripped
+        assert!(info.update_available);
+        assert!(info.url.ends_with("v0.9.0"));
+
+        // Same version → no update.
+        assert!(!parse_update(&json, "0.9.0").update_available);
+    }
+
+    #[test]
+    fn parse_update_falls_back_when_payload_is_unusable() {
+        // Missing tag → no update, releases URL.
+        let info = parse_update(&serde_json::json!({}), "0.8.0");
+        assert!(!info.update_available);
+        assert_eq!(info.latest, "0.8.0");
+        assert!(info.url.contains("/releases"));
+
+        // Tag present but no html_url → still works, falls back to releases URL.
+        let info = parse_update(&serde_json::json!({ "tag_name": "v1.0.0" }), "0.8.0");
+        assert!(info.update_available);
+        assert!(info.url.contains("/releases"));
     }
 }

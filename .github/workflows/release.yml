@@ -119,15 +119,8 @@ jobs:
           # Omitted by default so unsigned builds succeed: an empty
           # APPLE_CERTIFICATE makes macOS bundling fail on `security import`.
         with:
+          tagName: v${{ needs.version.outputs.version }}
           args: ${{ matrix.args }}
-
-      - name: Upload bundles to the release
-        shell: bash
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          PATHS: ${{ join(fromJSON(steps.tauri.outputs.artifactPaths), '" "') }}
-        run: |
-          gh release upload "v${{ needs.version.outputs.version }}" "$PATHS" --clobber
 
   package-managers:
     needs: [version, build]

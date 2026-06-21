@@ -14,6 +14,8 @@ for your public key and uploads the ciphertext to a bucket **you** own. Only you
 hold the private key. OCC Companion is the tool that turns those `.age` objects
 back into plaintext, on your machine.
 
+![OCC Companion — the connection screen](docs/screenshot.png)
+
 ---
 
 ## What it does

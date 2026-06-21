@@ -46,22 +46,55 @@ back into plaintext, on your machine.
 
 ## Install
 
-### Homebrew (macOS)
+### macOS — Homebrew
+
+Add the tap once, then install the cask:
 
 ```bash
-brew install --cask JoschaP/tap/occ-secure-exports
+brew tap JoschaP/tap
+brew install --cask occ-secure-exports
 ```
 
-### Scoop (Windows)
+Update or remove it later:
+
+```bash
+brew upgrade --cask occ-secure-exports
+brew uninstall --cask occ-secure-exports
+```
+
+### Windows — Scoop
+
+Add the bucket once, then install:
 
 ```powershell
 scoop bucket add occ-secure-exports https://github.com/JoschaP/scoop-bucket
 scoop install occ-secure-exports
 ```
 
-### Direct download
+Update or remove it later:
 
-Grab the installer for your OS from the
+```powershell
+scoop update occ-secure-exports
+scoop uninstall occ-secure-exports
+```
+
+### Linux
+
+There is no package repository yet — download a bundle from the
+[Releases](https://github.com/JoschaP/occ-secure-exports/releases) page.
+
+```bash
+# Debian / Ubuntu (.deb)
+sudo apt install ./occ-secure-exports_*_amd64.deb
+
+# Anything else (.AppImage) — make it executable and run it
+chmod +x ./*.AppImage
+./*.AppImage
+```
+
+### Direct download (any OS)
+
+Prefer to install by hand? Grab the bundle for your OS from the
 [Releases](https://github.com/JoschaP/occ-secure-exports/releases) page —
 `.dmg` (macOS, Apple Silicon + Intel), `.msi`/`.exe` (Windows),
 `.deb`/`.AppImage` (Linux).

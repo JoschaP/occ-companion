@@ -1,3 +1,10 @@
+## [0.2.1](https://github.com/JoschaP/occ-companion/compare/v0.2.0...v0.2.1) (2026-06-21)
+
+
+### Bug Fixes
+
+* scope key pre-check to selected files and cache results per object ([fff94d0](https://github.com/JoschaP/occ-companion/commit/fff94d0f6b5e8ae91caa00f287f89d535b1be182))
+
 # [0.2.0](https://github.com/JoschaP/occ-companion/compare/v0.1.1...v0.2.0) (2026-06-21)
 
 

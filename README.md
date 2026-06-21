@@ -81,13 +81,16 @@ This is the whole promise of the product, so it is built to be auditable:
   All S3 traffic happens in the Rust core (`aws-sdk-s3`), never in the browser
   layer — so key material in the UI physically cannot be exfiltrated by a network
   request from the frontend.
-- **Secrets live in the OS secure store**, never in plaintext on disk: macOS
+- **Secrets live in the OS secure store**, not in plaintext on disk: macOS
   Keychain, Windows Credential Manager, Linux Secret Service (libsecret), via the
   [`keyring`](https://crates.io/crates/keyring) crate. Connection *metadata*
   (endpoint, bucket, access-key **id**) is stored as plain JSON in the app config
   dir; the secret access key and the private age key are stored only in the
   secure store, and only if you opt in ("remember"). Otherwise the key is held in
-  memory for the session and discarded.
+  memory for the session and discarded. The **one** plaintext-on-disk path is the
+  **Rescue Kit** you may *optionally* save when generating a key — that file is
+  written only on your explicit action, to a location you choose, and never sent
+  anywhere.
 - **Streaming decryption.** S3 `GetObject` → `age` decrypt → file writer, in
   64 KiB chunks. A multi-GB artifact never sits fully in memory.
 - **Fail-closed, atomic writes.** Each file is decrypted to a temp file next to

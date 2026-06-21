@@ -110,7 +110,7 @@ temp file is removed, so no partial or plaintext output is ever left behind
 | Concern | Mitigation |
 | --- | --- |
 | Frontend compromise (malicious dep, XSS) exfiltrating the key | CSP `default-src 'self'` — the WebView has no network egress; the key only exists as identities in the Rust core |
-| Key/secret persisted in plaintext | Secrets live only in the OS secure store; metadata JSON never contains them |
+| Key/secret persisted in plaintext | Secrets live only in the OS secure store; metadata JSON never contains them. The only plaintext key file is the Rescue Kit the user *optionally* saves |
 | Crafted object key escaping the download folder (`../`, `..\`) | `safe_dest_path` drops `.`/`..`/empty segments; tested in `download.rs` |
 | Wrong key / corrupt data yielding a partial or plaintext file | Decrypt to temp + atomic rename; delete-on-error (fail-closed) |
 | Memory exhaustion on huge artifacts | Fixed 64 KiB streaming, never fully buffered |

@@ -65,9 +65,10 @@ export function KeygenDialog({ opened, onClose, onUseKey }: Props) {
   const [busy, setBusy] = useState(false);
   const [saved, setSaved] = useState(false);
 
-  // The dialog may only be dismissed before a key exists, or once it has been
-  // saved — so a freshly generated private key can never be lost by accident.
-  const canDismiss = !pair || saved;
+  // The Rescue Kit download is optional: saving it writes the private key as a
+  // plaintext file on disk, so we never force it. The dialog stays dismissable;
+  // the user is warned that an un-saved, un-remembered key is unrecoverable.
+  const canDismiss = !busy;
 
   async function generate() {
     setBusy(true);
@@ -189,13 +190,13 @@ export function KeygenDialog({ opened, onClose, onUseKey }: Props) {
             <KeyBlock label="PRIVATE KEY — keep this secret" value={pair.privateKey} />
 
             <Alert
-              color={saved ? "green" : "orange"}
+              color={saved ? "green" : "yellow"}
               icon={saved ? <IconCheck size={18} /> : <IconAlertTriangle size={18} />}
               variant="light"
             >
               {saved
-                ? "Rescue Kit saved. You can continue — keep that file safe."
-                : "Save your Rescue Kit to continue. It is the only way to decrypt your exports; if you lose it, they can never be recovered. It is never sent anywhere."}
+                ? "Rescue Kit saved — it's a file on this device (never sent anywhere). Keep it safe."
+                : "Optional but strongly recommended: download a Rescue Kit. Saving it writes the private key as a file you control on this device. Without it — and unless the connection remembers this key — a lost key means your exports can never be decrypted."}
             </Alert>
 
             <Group justify="space-between">
@@ -213,7 +214,6 @@ export function KeygenDialog({ opened, onClose, onUseKey }: Props) {
                 {onUseKey && (
                   <Button
                     variant="subtle"
-                    disabled={!saved}
                     onClick={() => {
                       onUseKey(pair.privateKey);
                       close();
@@ -222,7 +222,7 @@ export function KeygenDialog({ opened, onClose, onUseKey }: Props) {
                     Use in connection
                   </Button>
                 )}
-                <Button variant="default" disabled={!saved} onClick={close}>
+                <Button variant="default" onClick={close}>
                   Done
                 </Button>
               </Group>

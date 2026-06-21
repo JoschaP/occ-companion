@@ -6,7 +6,7 @@ export function Footer({ version }: { version: string }) {
   return (
     <Group className="footer" justify="space-between" px="md" wrap="nowrap" gap="sm">
       <Group gap={6} wrap="nowrap" miw={0}>
-        <IconLock size={13} color="var(--mantine-color-dimmed)" />
+        <IconLock size={13} color="var(--mantine-color-green-6)" />
         <Text size="xs" c="dimmed" truncate>
           Your private key never leaves this device — no telemetry.
         </Text>

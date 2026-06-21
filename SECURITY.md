@@ -30,7 +30,9 @@ versioning; security fixes ship as patch releases.
   (`default-src 'self'`) confines the UI; all S3 traffic runs in the Rust core,
   so key material in the UI cannot be exfiltrated by a frontend request.
 - **Secrets live in the OS secure store** (Keychain / Credential Manager /
-  Secret Service), never in plaintext on disk, and only when the user opts in.
+  Secret Service), not in plaintext on disk, and only when the user opts in. The
+  sole exception is the optional **Rescue Kit**, a plaintext key file the user
+  explicitly chooses to save; it is never sent anywhere.
 - **Streaming, fail-closed decryption.** Files are decrypted to a temp file,
   verified, then atomically renamed; on any error the temp file is removed, so
   no partial or plaintext output is ever left behind.

@@ -12,27 +12,36 @@
     <filter id="shadow" x="-25%" y="-25%" width="150%" height="150%">
       <feDropShadow dx="0" dy="16" stdDeviation="24" flood-color="#001A40" flood-opacity="0.30"/>
     </filter>
+    <!-- Soft contact shadow under the rounded square, like other macOS icons. -->
+    <filter id="sqshadow" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="0" dy="10" stdDeviation="20" flood-color="#001A40" flood-opacity="0.35"/>
+    </filter>
   </defs>
 
-  <!-- OCC-blue rounded square -->
-  <rect width="1024" height="1024" rx="230" fill="url(#bg)"/>
-  <rect width="1024" height="1024" rx="230" fill="url(#sheen)"/>
+  <!-- macOS icon grid: the artwork occupies ~824/1024 of the canvas, centered,
+       leaving a transparent margin so it renders the same visual size as other
+       apps (in the Dock and the Cmd-Tab switcher). -->
+  <g transform="translate(100 100) scale(0.8046875)">
+    <!-- OCC-blue rounded square -->
+    <rect width="1024" height="1024" rx="230" fill="url(#bg)" filter="url(#sqshadow)"/>
+    <rect width="1024" height="1024" rx="230" fill="url(#sheen)"/>
 
-  <g filter="url(#shadow)">
-    <!-- document with a folded top-right corner -->
-    <path d="M332 232 L612 232 L740 360 L740 770 Q740 792 718 792 L354 792 Q332 792 332 770 Z" fill="#FFFFFF"/>
-    <path d="M612 232 L612 360 L740 360 Z" fill="#C9D8F0"/>
+    <g filter="url(#shadow)">
+      <!-- document with a folded top-right corner -->
+      <path d="M332 232 L612 232 L740 360 L740 770 Q740 792 718 792 L354 792 Q332 792 332 770 Z" fill="#FFFFFF"/>
+      <path d="M612 232 L612 360 L740 360 Z" fill="#C9D8F0"/>
+    </g>
+
+    <!-- OCC wordmark -->
+    <text x="536" y="448" text-anchor="middle" font-family="Helvetica, Arial, sans-serif"
+          font-weight="700" font-size="150" letter-spacing="2" fill="#0054BC">OCC</text>
+
+    <!-- padlock -->
+    <g fill="none" stroke="#0054BC" stroke-width="26" stroke-linecap="round">
+      <path d="M492 596 L492 560 A44 44 0 0 1 580 560 L580 596"/>
+    </g>
+    <rect x="455" y="592" width="162" height="128" rx="22" fill="#0054BC"/>
+    <circle cx="536" cy="640" r="17" fill="#FFFFFF"/>
+    <path d="M528 652 L544 652 L549 690 L523 690 Z" fill="#FFFFFF"/>
   </g>
-
-  <!-- OCC wordmark -->
-  <text x="536" y="448" text-anchor="middle" font-family="Helvetica, Arial, sans-serif"
-        font-weight="700" font-size="150" letter-spacing="2" fill="#0054BC">OCC</text>
-
-  <!-- padlock -->
-  <g fill="none" stroke="#0054BC" stroke-width="26" stroke-linecap="round">
-    <path d="M492 596 L492 560 A44 44 0 0 1 580 560 L580 596"/>
-  </g>
-  <rect x="455" y="592" width="162" height="128" rx="22" fill="#0054BC"/>
-  <circle cx="536" cy="640" r="17" fill="#FFFFFF"/>
-  <path d="M528 652 L544 652 L549 690 L523 690 Z" fill="#FFFFFF"/>
 </svg>

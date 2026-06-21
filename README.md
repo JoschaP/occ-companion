@@ -99,9 +99,17 @@ Prefer to install by hand? Grab the bundle for your OS from the
 `.dmg` (macOS, Apple Silicon + Intel), `.msi`/`.exe` (Windows),
 `.deb`/`.AppImage` (Linux).
 
-> Builds are currently **unsigned**. macOS: right-click the app → **Open** the
-> first time (Gatekeeper). Windows: **More info → Run anyway** (SmartScreen).
-> Installing via Homebrew/Scoop generally avoids these prompts.
+> Builds are currently **unsigned** (see the [signing roadmap](#signing--notarization)),
+> so the OS warns on first launch:
+>
+> - **macOS:** right-click the app → **Open** (Gatekeeper). On Apple Silicon an
+>   unsigned app — including one installed via Homebrew — may instead report
+>   _"app is damaged and can't be opened"_; that is the quarantine flag, not a
+>   corrupt download. Clear it with
+>   `xattr -dr com.apple.quarantine "/Applications/OCC Secure Exports.app"`.
+> - **Windows:** **More info → Run anyway** (SmartScreen). An unsigned binary can
+>   still be flagged by SmartScreen/Defender whether you install it by hand or
+>   via Scoop.
 
 ## Security model — your key stays local
 
@@ -216,11 +224,19 @@ All crypto and S3 I/O is pure-Rust (rustls — no system OpenSSL).
 | Bundle                         | `.dmg` / `.app` (arm64 + x86_64) | `.msi` / `.exe` (NSIS)                                              | `.deb` / `.AppImage`                                      |
 | WebView (runtime)              | WKWebView — built in             | WebView2 — present on Win 11; the installer bootstraps it otherwise | WebKitGTK (`libwebkit2gtk-4.1`) — pulled in by the `.deb` |
 | Secure store                   | Keychain                         | Credential Manager                                                  | Secret Service (libsecret / gnome-keyring / KWallet)      |
-| Secret files (key, Rescue Kit) | `0600`                           | user-profile ACLs                                                   | `0600`                                                    |
+| Secret files (key, Rescue Kit) | `0600`                           | inherits folder ACLs (see note)                                     | `0600`                                                    |
 
-On Linux without a Secret Service running, **"remember"** is unavailable but the
-app still works with **"ask each time"**. Object keys are sanitized so a `/` or
-`\` in a key can never escape the chosen download folder on any OS.
+On macOS and Linux, secret files (the optional Rescue Kit / key) are created
+owner-only (`0600`). **On Windows no explicit ACL is applied** — the file
+inherits the permissions of the folder you save it into, which is owner-only
+inside your user profile but may be broader elsewhere; on a shared machine,
+save the Rescue Kit somewhere only you can read.
+
+On Linux without a Secret Service running, **"remember"** is unavailable and the
+app warns you and falls back to **"ask each time"**. Object keys are sanitized
+before they touch the disk — `/` and `\` can never escape the chosen download
+folder, and characters/names that are illegal on the target filesystem (e.g.
+`:` `?` `*` or reserved names like `CON` on Windows) are replaced — on any OS.
 
 ---
 

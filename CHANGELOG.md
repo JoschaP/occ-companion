@@ -1,3 +1,10 @@
+## [0.9.4](https://github.com/JoschaP/occ-secure-exports/compare/v0.9.3...v0.9.4) (2026-06-21)
+
+
+### Bug Fixes
+
+* **core:** platform-specific path and keyring hardening ([639490d](https://github.com/JoschaP/occ-secure-exports/commit/639490d998f21403c04aacedcffbd402dea86a33))
+
 ## [0.9.3](https://github.com/JoschaP/occ-secure-exports/compare/v0.9.2...v0.9.3) (2026-06-21)
 
 

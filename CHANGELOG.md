@@ -1,3 +1,11 @@
+# [0.8.0](https://github.com/JoschaP/occ-secure-exports/compare/v0.7.0...v0.8.0) (2026-06-21)
+
+
+### Features
+
+* check for a newer version against the GitHub releases API ([b4a3af1](https://github.com/JoschaP/occ-secure-exports/commit/b4a3af1d59f1a2c897c0d3cb26e7da8cbef3ff89))
+* make the Rescue Kit download optional + honest key-storage wording ([e542283](https://github.com/JoschaP/occ-secure-exports/commit/e542283106ec7cbe523e78178346fc8b2aa10595))
+
 # [0.7.0](https://github.com/JoschaP/occ-secure-exports/compare/v0.6.0...v0.7.0) (2026-06-21)
 
 

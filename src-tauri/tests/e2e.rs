@@ -227,3 +227,69 @@ async fn e2e_wrong_key_is_fail_closed() {
     let _ = std::fs::remove_dir_all(&dir);
     delete_object(&client, &profile.bucket, &key).await;
 }
+
+#[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+async fn e2e_passthrough_non_age_file_unchanged() {
+    let Some((profile, secret)) = test_profile() else {
+        eprintln!("SKIP e2e_passthrough_non_age_file_unchanged: .env.test not configured");
+        return;
+    };
+    let client = s3::build_client(&profile, &secret).await.expect("client");
+    let kp = generate_keypair();
+    let plaintext = b"plain notes, not age-encrypted";
+    let nanos = SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .unwrap()
+        .as_nanos();
+    let key = format!("tests/e2e/passthrough-{}-{}.txt", std::process::id(), nanos);
+    put_object(&client, &profile.bucket, &key, plaintext.to_vec()).await;
+
+    let dir = std::env::temp_dir().join(format!("occ-e2e-pt-{}-{}", std::process::id(), nanos));
+    std::fs::create_dir_all(&dir).unwrap();
+    let out_name = plaintext_file_name(&key);
+    assert!(out_name.ends_with(".txt"), "extension must be kept for non-age");
+    let dest = dir.join(&out_name);
+
+    let identities = Arc::new(crypto::parse_identities(&kp.private_key).unwrap());
+    download::download_and_decrypt(&client, &profile.bucket, &key, &dest, identities, |_, _| {})
+        .await
+        .expect("passthrough download");
+    assert_eq!(
+        std::fs::read(&dest).unwrap(),
+        plaintext,
+        "non-age file must be passed through unchanged"
+    );
+
+    let _ = std::fs::remove_dir_all(&dir);
+    delete_object(&client, &profile.bucket, &key).await;
+}
+
+#[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+async fn e2e_header_probe_detects_key() {
+    let Some((profile, secret)) = test_profile() else {
+        eprintln!("SKIP e2e_header_probe_detects_key: .env.test not configured");
+        return;
+    };
+    let client = s3::build_client(&profile, &secret).await.expect("client");
+    let alice = generate_keypair();
+    let bob = generate_keypair();
+    let key = unique_key("probe");
+    put_object(
+        &client,
+        &profile.bucket,
+        &key,
+        encrypt_for(&alice.public_key, b"secret body"),
+    )
+    .await;
+
+    // Probe only the header (range request) — no full download needed.
+    let head = s3::fetch_prefix(&client, &profile.bucket, &key, 65535)
+        .await
+        .expect("fetch header");
+    let alice_ids = crypto::parse_identities(&alice.private_key).unwrap();
+    let bob_ids = crypto::parse_identities(&bob.private_key).unwrap();
+    assert_eq!(crypto::matches_key(&head, &alice_ids), Some(true));
+    assert_eq!(crypto::matches_key(&head, &bob_ids), Some(false));
+
+    delete_object(&client, &profile.bucket, &key).await;
+}

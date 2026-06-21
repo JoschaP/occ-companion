@@ -27,9 +27,9 @@ and skips (the release itself still succeeds).
 To rotate them (all via CLI — no PAT needed):
 
 ```bash
-ssh-keygen -t ed25519 -f tapkey -N "" -C occ-companion-ci
-gh repo deploy-key add tapkey.pub --repo JoschaP/homebrew-tap --allow-write --title occ-companion-ci
-gh secret set HOMEBREW_TAP_DEPLOY_KEY --repo JoschaP/occ-companion < tapkey
+ssh-keygen -t ed25519 -f tapkey -N "" -C occ-secure-exports-ci
+gh repo deploy-key add tapkey.pub --repo JoschaP/homebrew-tap --allow-write --title occ-secure-exports-ci
+gh secret set HOMEBREW_TAP_DEPLOY_KEY --repo JoschaP/occ-secure-exports < tapkey
 # repeat for scoop-bucket → SCOOP_BUCKET_DEPLOY_KEY
 ```
 

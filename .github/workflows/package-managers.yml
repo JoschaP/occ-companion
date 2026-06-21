@@ -89,8 +89,8 @@ jobs:
           VERSION="${TAG#v}"
           mkdir -p homebrew-tap/Casks scoop-bucket/bucket
           node app/scripts/update-packages.mjs "$VERSION" assets \
-            homebrew-tap/Casks/occ-companion.rb \
-            scoop-bucket/bucket/occ-companion.json
+            homebrew-tap/Casks/occ-secure-exports.rb \
+            scoop-bucket/bucket/occ-secure-exports.json
 
       - name: Commit & push Homebrew cask
         if: steps.guard.outputs.ok == 'true'
@@ -98,8 +98,8 @@ jobs:
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add Casks/occ-companion.rb
-          git diff --cached --quiet || git commit -m "occ-companion ${{ inputs.tag }}"
+          git add Casks/occ-secure-exports.rb
+          git diff --cached --quiet || git commit -m "occ-secure-exports ${{ inputs.tag }}"
           git push
 
       - name: Commit & push Scoop manifest
@@ -108,6 +108,6 @@ jobs:
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add bucket/occ-companion.json
-          git diff --cached --quiet || git commit -m "occ-companion ${{ inputs.tag }}"
+          git add bucket/occ-secure-exports.json
+          git diff --cached --quiet || git commit -m "occ-secure-exports ${{ inputs.tag }}"
           git push

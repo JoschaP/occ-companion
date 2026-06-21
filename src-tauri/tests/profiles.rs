@@ -7,7 +7,7 @@
 use std::path::PathBuf;
 use std::time::{SystemTime, UNIX_EPOCH};
 
-use occ_companion_lib::profile::{
+use occ_secure_exports_lib::profile::{
     self, delete_secrets, get_secrets, set_secrets, ConnectionProfile, StoredSecrets,
 };
 

@@ -1,6 +1,6 @@
 # Security Policy
 
-OCC Companion handles a private decryption key, so security is the product's
+OCC Secure Exports handles a private decryption key, so security is the product's
 core promise. Thank you for helping keep it trustworthy.
 
 ## Reporting a vulnerability
@@ -8,7 +8,7 @@ core promise. Thank you for helping keep it trustworthy.
 **Please do not open a public issue for security problems.**
 
 Report privately via GitHub Security Advisories:
-<https://github.com/JoschaP/occ-companion/security/advisories/new>
+<https://github.com/JoschaP/occ-secure-exports/security/advisories/new>
 
 Include what you found, how to reproduce it, and the impact. We aim to
 acknowledge within a few days and to coordinate a fix and disclosure with you.

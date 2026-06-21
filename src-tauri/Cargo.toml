@@ -1,5 +1,5 @@
 [package]
-name = "occ-companion"
+name = "occ-secure-exports"
 version = "0.5.0"
 description = "Retrieve & decrypt your OCC data exports"
 authors = ["Joscha Prasse <j.prasse@beazubi.de>"]
@@ -7,7 +7,7 @@ edition = "2021"
 license = "MIT"
 
 [lib]
-name = "occ_companion_lib"
+name = "occ_secure_exports_lib"
 crate-type = ["staticlib", "cdylib", "rlib"]
 
 [build-dependencies]

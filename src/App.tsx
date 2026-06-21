@@ -269,7 +269,7 @@ export default function App() {
   async function exportKit(id: string) {
     const path = await save({
       title: "Export Rescue Kit",
-      defaultPath: "occ-companion-rescue-kit.txt",
+      defaultPath: "occ-secure-exports-rescue-kit.txt",
       filters: [{ name: "Rescue Kit", extensions: ["txt", "age", "key"] }],
     });
     if (!path) return;

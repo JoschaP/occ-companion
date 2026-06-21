@@ -99,7 +99,7 @@ export function KeygenDialog({ opened, onClose, onUseKey }: Props) {
     const today = new Date().toISOString().slice(0, 10);
     return [
       "# ============================================================",
-      "#   OCC Companion — Key Rescue Kit",
+      "#   OCC Secure Exports — Key Rescue Kit",
       "# ============================================================",
       `#   Created: ${today}`,
       "#",
@@ -114,10 +114,10 @@ export function KeygenDialog({ opened, onClose, onUseKey }: Props) {
       "#   with AGE-SECRET-KEY. If you lose it, your exports can NEVER",
       "#   be recovered.",
       "#",
-      "#   To restore: open OCC Companion, add a connection, and paste",
+      "#   To restore: open OCC Secure Exports, add a connection, and paste",
       "#   the private key into the \"Private key\" field. Or decrypt a",
       "#   file manually with the age tool:",
-      "#     age -d -i occ-companion-rescue-kit.txt export.json.age > export.json",
+      "#     age -d -i occ-secure-exports-rescue-kit.txt export.json.age > export.json",
       "# ============================================================",
       "",
       p.privateKey,
@@ -129,7 +129,7 @@ export function KeygenDialog({ opened, onClose, onUseKey }: Props) {
     if (!pair) return;
     const path = await save({
       title: "Save your Rescue Kit",
-      defaultPath: "occ-companion-rescue-kit.txt",
+      defaultPath: "occ-secure-exports-rescue-kit.txt",
       filters: [{ name: "Rescue Kit", extensions: ["txt", "age", "key"] }],
     });
     if (!path) return;

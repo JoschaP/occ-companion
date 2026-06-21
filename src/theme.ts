@@ -1,6 +1,6 @@
 // OCC design tokens, mirrored from the OCC web console (../frontend).
-// Same primary blue scale, gray/status scales, fonts and radii so the
-// Companion is visually part of the OCC family.
+// Same primary blue scale, gray/status scales, fonts and radii so the app
+// is visually part of the OCC family.
 
 import { createTheme, type MantineColorsTuple } from "@mantine/core";
 

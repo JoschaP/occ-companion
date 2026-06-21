@@ -5,13 +5,13 @@
 // Usage:
 //   node scripts/update-packages.mjs <version> <assetsDir> <caskOut> <scoopOut>
 //
-// Env: REPO (owner/repo, default JoschaP/occ-companion)
+// Env: REPO (owner/repo, default JoschaP/occ-secure-exports)
 import { createHash } from "node:crypto";
 import { readdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 
 const [version, assetsDir, caskOut, scoopOut] = process.argv.slice(2);
-const REPO = process.env.REPO || "JoschaP/occ-companion";
+const REPO = process.env.REPO || "JoschaP/occ-secure-exports";
 
 if (!version || !assetsDir || !caskOut || !scoopOut) {
   console.error("Usage: update-packages.mjs <version> <assetsDir> <caskOut> <scoopOut>");
@@ -39,7 +39,7 @@ const dmgIntel = pick(/x64.*\.dmg$/i, "macOS x86_64 .dmg");
 // Windows: NSIS installer.
 const winSetup = pick(/x64-setup\.exe$/i, "Windows x64 NSIS setup");
 
-const cask = `cask "occ-companion" do
+const cask = `cask "occ-secure-exports" do
   version "${version}"
 
   on_arm do
@@ -53,16 +53,16 @@ const cask = `cask "occ-companion" do
         verified: "github.com/${REPO}/"
   end
 
-  name "OCC Companion"
+  name "OCC Secure Exports"
   desc "Retrieve & decrypt your age-encrypted data exports"
   homepage "https://github.com/${REPO}"
 
-  app "OCC Companion.app"
+  app "OCC Secure Exports.app"
 
   zap trash: [
-    "~/Library/Application Support/de.occ-companion.app",
-    "~/Library/Caches/de.occ-companion.app",
-    "~/Library/WebKit/de.occ-companion.app",
+    "~/Library/Application Support/de.occ-secure-exports.app",
+    "~/Library/Caches/de.occ-secure-exports.app",
+    "~/Library/WebKit/de.occ-secure-exports.app",
   ]
 end
 `;
@@ -85,7 +85,7 @@ const scoop = {
   },
   uninstaller: {
     script: [
-      "$u = \"$env:LOCALAPPDATA\\\\OCC Companion\\\\uninstall.exe\"",
+      "$u = \"$env:LOCALAPPDATA\\\\OCC Secure Exports\\\\uninstall.exe\"",
       "if (Test-Path $u) { Start-Process -Wait -FilePath $u -ArgumentList '/S' }",
     ],
   },
@@ -95,7 +95,7 @@ const scoop = {
   autoupdate: {
     architecture: {
       "64bit": {
-        url: `https://github.com/${REPO}/releases/download/v$version/OCC.Companion_$version_x64-setup.exe`,
+        url: `https://github.com/${REPO}/releases/download/v$version/OCC.Secure.Exports_$version_x64-setup.exe`,
       },
     },
   },

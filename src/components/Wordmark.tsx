@@ -17,7 +17,7 @@ export function Wordmark({ size = 18 }: { size?: number }) {
         whiteSpace: "nowrap",
       }}
     >
-      OCC&nbsp;Companion
+      OCC&nbsp;Secure&nbsp;Exports
     </Text>
   );
 }

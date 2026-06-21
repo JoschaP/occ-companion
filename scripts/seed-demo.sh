@@ -7,7 +7,7 @@ cd "$(dirname "$0")/.."
 PUB=$(grep -m1 OCC_TEST_AGE_PUBLIC_KEY .env.test | sed 's/.*="//;s/"$//')
 [ -n "$PUB" ] || { echo "OCC_TEST_AGE_PUBLIC_KEY missing in .env.test"; exit 1; }
 WRONG=$(age-keygen 2>/dev/null | grep -i "public key" | sed 's/.*: //')
-B=occ-test/occ-companion
+B=occ-test/occ-secure-exports
 tmp=$(mktemp -d)
 trap 'rm -rf "$tmp"' EXIT
 

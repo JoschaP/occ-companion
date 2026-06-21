@@ -1,8 +1,8 @@
-# OCC Companion
+# OCC Secure Exports
 
-[![CI](https://github.com/JoschaP/occ-companion/actions/workflows/ci.yml/badge.svg)](https://github.com/JoschaP/occ-companion/actions/workflows/ci.yml)
-[![Release](https://github.com/JoschaP/occ-companion/actions/workflows/release.yml/badge.svg)](https://github.com/JoschaP/occ-companion/actions/workflows/release.yml)
-[![Latest release](https://img.shields.io/github/v/release/JoschaP/occ-companion?sort=semver)](https://github.com/JoschaP/occ-companion/releases)
+[![CI](https://github.com/JoschaP/occ-secure-exports/actions/workflows/ci.yml/badge.svg)](https://github.com/JoschaP/occ-secure-exports/actions/workflows/ci.yml)
+[![Release](https://github.com/JoschaP/occ-secure-exports/actions/workflows/release.yml/badge.svg)](https://github.com/JoschaP/occ-secure-exports/actions/workflows/release.yml)
+[![Latest release](https://img.shields.io/github/v/release/JoschaP/occ-secure-exports?sort=semver)](https://github.com/JoschaP/occ-secure-exports/releases)
 [![License: MIT](https://img.shields.io/badge/License-MIT-informational.svg)](LICENSE)
 
 A small, open-source desktop app that lets you pull your **age-encrypted data
@@ -11,10 +11,10 @@ exports** out of your own S3 bucket and decrypt them — with no command line.
 It is the recipient-side counterpart to the **OCC** (the cloud console)
 "controlled egress" export feature: the OCC encrypts each artifact with *age*
 for your public key and uploads the ciphertext to a bucket **you** own. Only you
-hold the private key. OCC Companion is the tool that turns those `.age` objects
+hold the private key. OCC Secure Exports is the tool that turns those `.age` objects
 back into plaintext, on your machine.
 
-![OCC Companion — the connection screen](docs/screenshot.png)
+![OCC Secure Exports — the connection screen](docs/screenshot.png)
 
 ---
 
@@ -36,20 +36,20 @@ back into plaintext, on your machine.
 ### Homebrew (macOS)
 
 ```bash
-brew install --cask JoschaP/tap/occ-companion
+brew install --cask JoschaP/tap/occ-secure-exports
 ```
 
 ### Scoop (Windows)
 
 ```powershell
-scoop bucket add occ-companion https://github.com/JoschaP/scoop-bucket
-scoop install occ-companion
+scoop bucket add occ-secure-exports https://github.com/JoschaP/scoop-bucket
+scoop install occ-secure-exports
 ```
 
 ### Direct download
 
 Grab the installer for your OS from the
-[Releases](https://github.com/JoschaP/occ-companion/releases) page —
+[Releases](https://github.com/JoschaP/occ-secure-exports/releases) page —
 `.dmg` (macOS, Apple Silicon + Intel), `.msi`/`.exe` (Windows),
 `.deb`/`.AppImage` (Linux).
 
@@ -98,7 +98,7 @@ Because the app is open source, you can confirm the claims:
 
 ## Keys
 
-OCC Companion accepts two kinds of private key as decryption identities:
+OCC Secure Exports accepts two kinds of private key as decryption identities:
 
 - **Native age keys** (`AGE-SECRET-KEY-1…`)
 - **OpenSSH private keys** (ed25519 / rsa), unencrypted
@@ -111,7 +111,7 @@ can ever decrypt your exports.
 
 ## How it pairs with the OCC export feature
 
-| OCC (sender) | OCC Companion (recipient) |
+| OCC (sender) | OCC Secure Exports (recipient) |
 | --- | --- |
 | You register a bucket you own + your age **public** key. | You add the same bucket + your **private** key. |
 | For each export, the OCC encrypts with age for your public key and uploads `…json.age`. | You browse the bucket and download & decrypt. |

@@ -15,7 +15,7 @@ use serde::{Deserialize, Serialize};
 use crate::error::{AppError, AppResult};
 
 /// Keyring service name. One entry per profile holds all of its secrets.
-const KEYRING_SERVICE: &str = "de.occ-companion.app";
+const KEYRING_SERVICE: &str = "de.occ-secure-exports.app";
 const PROFILES_FILE: &str = "profiles.json";
 
 /// Both secrets for a connection, stored together in a single keyring entry so

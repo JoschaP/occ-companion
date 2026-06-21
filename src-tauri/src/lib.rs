@@ -1,4 +1,4 @@
-//! OCC Companion — Tauri entry point.
+//! OCC Secure Exports — Tauri entry point.
 //!
 //! The WebView talks to the core only through the commands registered below.
 //! The single outbound network path is the S3 client inside `s3`/`download`;

@@ -1,4 +1,4 @@
-# Contributing to OCC Companion
+# Contributing to OCC Secure Exports
 
 Thanks for your interest! This is a small, security-focused desktop app — clear,
 auditable changes are valued over clever ones.

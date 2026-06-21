@@ -1,4 +1,4 @@
-# OCC Companion task runner — `just <target>` (https://github.com/casey/just)
+# OCC Secure Exports task runner — `just <target>` (https://github.com/casey/just)
 
 # List available targets
 default:

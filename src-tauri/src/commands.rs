@@ -247,7 +247,7 @@ fn rescue_kit_text(public: Option<&str>, private: &str) -> String {
     };
     format!(
         "# ============================================================\n\
-         #   OCC Companion — Key Rescue Kit\n\
+         #   OCC Secure Exports — Key Rescue Kit\n\
          # ============================================================\n\
          #   This file is the ONLY way to decrypt your OCC data exports.\n\
          #   Keep it safe and private. It is never sent anywhere.\n\
@@ -258,9 +258,9 @@ fn rescue_kit_text(public: Option<&str>, private: &str) -> String {
          #   PRIVATE KEY — your secret (below). If you lose it, your\n\
          #   exports can NEVER be recovered.\n\
          #\n\
-         #   To restore: open OCC Companion, add a connection, and paste\n\
+         #   To restore: open OCC Secure Exports, add a connection, and paste\n\
          #   the private key into the \"Private key\" field. Or decrypt with:\n\
-         #     age -d -i occ-companion-rescue-kit.txt export.json.age > export.json\n\
+         #     age -d -i occ-secure-exports-rescue-kit.txt export.json.age > export.json\n\
          # ============================================================\n\
          \n\
          {private}\n"

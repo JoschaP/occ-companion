@@ -50,7 +50,7 @@ export function ProfileList({
     <Box maw={620} mx="auto" px="md" py="xl" w="100%">
       <Group justify="space-between" align="flex-end" mb="lg" mt="md">
         <div>
-          <Title order={1}>OCC Companion</Title>
+          <Title order={1}>OCC Secure Exports</Title>
           <Text c="dimmed" size="sm">
             Download &amp; decrypt your OCC data exports.
           </Text>

@@ -12,7 +12,7 @@ export function Footer({ version }: { version: string }) {
         </Text>
       </Group>
       {version && (
-        <Tooltip label="OCC Companion" withArrow>
+        <Tooltip label="OCC Secure Exports" withArrow>
           <Text size="xs" c="dimmed" style={{ flexShrink: 0 }}>
             v{version}
           </Text>

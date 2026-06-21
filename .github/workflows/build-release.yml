@@ -83,7 +83,7 @@ jobs:
           # APPLE_CERTIFICATE makes macOS bundling fail on `security import`.
         with:
           tagName: ${{ inputs.tag }}
-          releaseName: "OCC Companion ${{ inputs.tag }}"
+          releaseName: "OCC Secure Exports ${{ inputs.tag }}"
           releaseDraft: false
           prerelease: true
           args: ${{ matrix.args }}

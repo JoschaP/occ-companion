@@ -42,7 +42,7 @@ pub async fn build_client(
         secret_access_key.to_string(),
         None,
         None,
-        "occ-companion",
+        "occ-secure-exports",
     );
 
     let region = Region::new(if profile.region.trim().is_empty() {

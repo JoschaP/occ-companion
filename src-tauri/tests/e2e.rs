@@ -21,10 +21,10 @@ use std::time::{SystemTime, UNIX_EPOCH};
 use aws_sdk_s3::primitives::ByteStream;
 use aws_sdk_s3::Client;
 
-use occ_companion_lib::crypto::{self, generate_keypair};
-use occ_companion_lib::download::{self, plaintext_file_name};
-use occ_companion_lib::profile::ConnectionProfile;
-use occ_companion_lib::s3;
+use occ_secure_exports_lib::crypto::{self, generate_keypair};
+use occ_secure_exports_lib::download::{self, plaintext_file_name};
+use occ_secure_exports_lib::profile::ConnectionProfile;
+use occ_secure_exports_lib::s3;
 
 /// Parse a minimal `.env`-style file (`KEY=value`, optional surrounding quotes).
 fn load_env() -> Option<HashMap<String, String>> {

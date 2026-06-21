@@ -1,3 +1,11 @@
+## [0.9.1](https://github.com/JoschaP/occ-secure-exports/compare/v0.9.0...v0.9.1) (2026-06-21)
+
+
+### Bug Fixes
+
+* **core:** harden secret file writes, secret store, and listing robustness ([5f1c765](https://github.com/JoschaP/occ-secure-exports/commit/5f1c7658936eaf91065b478518ee9b9f8baf2d2a))
+* **ui+ci:** guard concurrent downloads, robust listeners, Linux keyring build ([1b9ce1a](https://github.com/JoschaP/occ-secure-exports/commit/1b9ce1afc38402420ac77a04cd05e016341ebb29))
+
 # [0.9.0](https://github.com/JoschaP/occ-secure-exports/compare/v0.8.0...v0.9.0) (2026-06-21)
 
 

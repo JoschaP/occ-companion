@@ -197,7 +197,7 @@ pub fn list_profiles(app: AppHandle) -> AppResult<Vec<ConnectionProfile>> {
 #[tauri::command]
 pub fn save_profile(
     app: AppHandle,
-    profile: ConnectionProfile,
+    mut profile: ConnectionProfile,
     creds: Credentials,
 ) -> AppResult<()> {
     let dir = config_dir(&app)?;
@@ -226,7 +226,13 @@ pub fn save_profile(
         None
     };
 
-    profile::set_secrets(&profile.id, &stored)?;
+    // If the OS secure store is unavailable (e.g. no Secret Service on Linux),
+    // keep the connection but record that nothing was remembered so the UI
+    // falls back to asking for credentials each time instead of failing.
+    if !profile::set_secrets(&profile.id, &stored)? {
+        profile.remember_secret = false;
+        profile.remember_key = false;
+    }
     profile::upsert_profile(&dir, profile)
 }
 

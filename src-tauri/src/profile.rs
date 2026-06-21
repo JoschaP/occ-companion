@@ -125,6 +125,17 @@ pub fn delete_profile(config_dir: &Path, id: &str) -> AppResult<()> {
     Ok(())
 }
 
+/// True when a keyring error means the OS secure store itself is unavailable
+/// (e.g. no Secret Service / gnome-keyring running on a headless Linux box) as
+/// opposed to a logic error. In that case "remember" degrades to ask-each-time
+/// instead of failing the operation.
+fn is_backend_unavailable(e: &keyring::Error) -> bool {
+    matches!(
+        e,
+        keyring::Error::PlatformFailure(_) | keyring::Error::NoStorageAccess(_)
+    )
+}
+
 fn creds_entry(id: &str) -> AppResult<keyring::Entry> {
     let account = format!("{id}::creds");
     keyring::Entry::new(KEYRING_SERVICE, &account).map_err(AppError::from)
@@ -157,6 +168,9 @@ pub fn get_secrets(id: &str) -> AppResult<StoredSecrets> {
             AppError::Keyring("the stored credentials are corrupted; please re-enter them".into())
         }),
         Err(keyring::Error::NoEntry) => migrate_legacy(id),
+        // No secure store available (e.g. no Secret Service on Linux): behave as
+        // if nothing was remembered so the UI falls back to ask-each-time.
+        Err(e) if is_backend_unavailable(&e) => Ok(StoredSecrets::default()),
         Err(e) => Err(AppError::from(e)),
     }
 }
@@ -176,23 +190,56 @@ fn migrate_legacy(id: &str) -> AppResult<StoredSecrets> {
 }
 
 /// Store both secrets in a single keyring entry. Writing an empty set deletes
-/// the entry instead.
-pub fn set_secrets(id: &str, secrets: &StoredSecrets) -> AppResult<()> {
+/// the entry instead. Returns `false` when the OS secure store is unavailable
+/// (e.g. no Secret Service running on Linux) so nothing could be stored — the
+/// caller should fall back to ask-each-time; any other failure propagates.
+pub fn set_secrets(id: &str, secrets: &StoredSecrets) -> AppResult<bool> {
     if secrets.is_empty() {
-        return delete_secrets(id);
+        delete_secrets(id)?;
+        return Ok(true);
     }
     let json = serde_json::to_string(secrets)?;
-    creds_entry(id)?.set_password(&json)?;
-    Ok(())
+    match creds_entry(id)?.set_password(&json) {
+        Ok(()) => Ok(true),
+        Err(e) if is_backend_unavailable(&e) => Ok(false),
+        Err(e) => Err(AppError::from(e)),
+    }
 }
 
-/// Delete a profile's bundled (and any leftover legacy) secrets.
+/// Delete a profile's bundled (and any leftover legacy) secrets. A missing
+/// entry or an unavailable secure store is treated as already-clean.
 pub fn delete_secrets(id: &str) -> AppResult<()> {
     match creds_entry(id)?.delete_credential() {
         Ok(()) | Err(keyring::Error::NoEntry) => {}
+        Err(e) if is_backend_unavailable(&e) => {}
         Err(e) => return Err(AppError::from(e)),
     }
     legacy_delete(id, LegacyKind::S3Secret);
     legacy_delete(id, LegacyKind::AgeKey);
     Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn boxed() -> Box<dyn std::error::Error + Send + Sync> {
+        Box::from("backend down")
+    }
+
+    #[test]
+    fn backend_unavailable_only_for_store_outages() {
+        // A missing daemon / no access surfaces as these — degrade gracefully.
+        assert!(is_backend_unavailable(&keyring::Error::PlatformFailure(
+            boxed()
+        )));
+        assert!(is_backend_unavailable(&keyring::Error::NoStorageAccess(
+            boxed()
+        )));
+        // Logic errors must NOT be swallowed as "no store".
+        assert!(!is_backend_unavailable(&keyring::Error::NoEntry));
+        assert!(!is_backend_unavailable(&keyring::Error::BadEncoding(vec![
+            0xff
+        ])));
+    }
 }

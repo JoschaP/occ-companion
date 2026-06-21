@@ -149,8 +149,12 @@ pub fn generate_keypair() -> KeyPairDto {
 /// Write secret material so it is owner-only **from creation** — on unix the
 /// file is opened with mode 0600 (no world-readable window between create and
 /// chmod), and existing-file permissions are tightened too. Errors propagate so
-/// a failed chmod never silently leaves a key world-readable. On Windows the
-/// file inherits the user-profile ACL (owner-only by default).
+/// a failed chmod never silently leaves a key world-readable.
+///
+/// On Windows no explicit ACL is applied: the file simply inherits the parent
+/// folder's permissions (owner-only inside the user profile, but potentially
+/// broader elsewhere). This is the one place the owner-only guarantee is weaker;
+/// it is documented in the README so the claim isn't overstated.
 fn write_secret_file(path: &std::path::Path, contents: &str) -> AppResult<()> {
     #[cfg(unix)]
     {
@@ -195,11 +199,14 @@ pub fn list_profiles(app: AppHandle) -> AppResult<Vec<ConnectionProfile>> {
 
 /// Save profile metadata and, per the remember flags, store or clear secrets.
 #[tauri::command]
+/// Returns whether the requested secrets were actually remembered: `false` when
+/// the OS secure store was unavailable, so the UI can warn that the connection
+/// falls back to asking each time.
 pub fn save_profile(
     app: AppHandle,
     mut profile: ConnectionProfile,
     creds: Credentials,
-) -> AppResult<()> {
+) -> AppResult<bool> {
     let dir = config_dir(&app)?;
 
     let new_secret = creds.secret_access_key.as_deref().filter(|s| !s.is_empty());
@@ -229,11 +236,13 @@ pub fn save_profile(
     // If the OS secure store is unavailable (e.g. no Secret Service on Linux),
     // keep the connection but record that nothing was remembered so the UI
     // falls back to asking for credentials each time instead of failing.
-    if !profile::set_secrets(&profile.id, &stored)? {
+    let remembered = profile::set_secrets(&profile.id, &stored)?;
+    if !remembered {
         profile.remember_secret = false;
         profile.remember_key = false;
     }
-    profile::upsert_profile(&dir, profile)
+    profile::upsert_profile(&dir, profile)?;
+    Ok(remembered)
 }
 
 #[tauri::command]
@@ -549,10 +558,13 @@ pub async fn download_decrypt(
 
     let dest = PathBuf::from(dest_dir);
     let mut results = Vec::with_capacity(items.len());
+    // Claimed destination paths in this batch, so two keys that map to the same
+    // on-disk name (e.g. case-insensitive collisions) don't overwrite silently.
+    let mut claimed = std::collections::HashSet::new();
 
     for item in items {
         let DownloadItem { key, rel_path } = item;
-        let dest_path = download::safe_dest_path(&dest, &rel_path);
+        let dest_path = download::unique_dest_path(&dest, &rel_path, &mut claimed);
         let progress = progress_emitter(app.clone(), key.clone());
 
         let outcome = download::download_and_decrypt(

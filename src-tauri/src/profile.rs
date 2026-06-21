@@ -136,9 +136,13 @@ fn is_backend_unavailable(e: &keyring::Error) -> bool {
     )
 }
 
-fn creds_entry(id: &str) -> AppResult<keyring::Entry> {
+/// Build the bundled-secrets keyring entry. Returns the raw `keyring::Error` so
+/// callers can distinguish a backend outage (degrade) from a real failure —
+/// `Entry::new` itself can fail with `PlatformFailure` when there is no D-Bus
+/// session bus (headless Linux), *before* any get/set call.
+fn creds_entry(id: &str) -> Result<keyring::Entry, keyring::Error> {
     let account = format!("{id}::creds");
-    keyring::Entry::new(KEYRING_SERVICE, &account).map_err(AppError::from)
+    keyring::Entry::new(KEYRING_SERVICE, &account)
 }
 
 fn legacy_entry(id: &str, kind: LegacyKind) -> AppResult<keyring::Entry> {
@@ -161,15 +165,21 @@ fn legacy_delete(id: &str, kind: LegacyKind) {
 /// per-kind entries exist, they are read once and migrated into the bundled
 /// entry (and the old ones removed) so subsequent connects prompt only once.
 pub fn get_secrets(id: &str) -> AppResult<StoredSecrets> {
-    match creds_entry(id)?.get_password() {
+    let entry = match creds_entry(id) {
+        Ok(e) => e,
+        // No secure store at all (e.g. no D-Bus session bus on headless Linux):
+        // behave as if nothing was remembered so the UI falls back to ask-each-time.
+        Err(e) if is_backend_unavailable(&e) => return Ok(StoredSecrets::default()),
+        Err(e) => return Err(AppError::from(e)),
+    };
+    match entry.get_password() {
         // A malformed entry must not silently read as "no secrets" — that would
         // look like the user never saved them. Surface it so they re-enter.
         Ok(json) => serde_json::from_str(&json).map_err(|_| {
             AppError::Keyring("the stored credentials are corrupted; please re-enter them".into())
         }),
         Err(keyring::Error::NoEntry) => migrate_legacy(id),
-        // No secure store available (e.g. no Secret Service on Linux): behave as
-        // if nothing was remembered so the UI falls back to ask-each-time.
+        // Secure store unavailable: same graceful fallback.
         Err(e) if is_backend_unavailable(&e) => Ok(StoredSecrets::default()),
         Err(e) => Err(AppError::from(e)),
     }
@@ -199,7 +209,12 @@ pub fn set_secrets(id: &str, secrets: &StoredSecrets) -> AppResult<bool> {
         return Ok(true);
     }
     let json = serde_json::to_string(secrets)?;
-    match creds_entry(id)?.set_password(&json) {
+    let entry = match creds_entry(id) {
+        Ok(e) => e,
+        Err(e) if is_backend_unavailable(&e) => return Ok(false),
+        Err(e) => return Err(AppError::from(e)),
+    };
+    match entry.set_password(&json) {
         Ok(()) => Ok(true),
         Err(e) if is_backend_unavailable(&e) => Ok(false),
         Err(e) => Err(AppError::from(e)),
@@ -209,8 +224,13 @@ pub fn set_secrets(id: &str, secrets: &StoredSecrets) -> AppResult<bool> {
 /// Delete a profile's bundled (and any leftover legacy) secrets. A missing
 /// entry or an unavailable secure store is treated as already-clean.
 pub fn delete_secrets(id: &str) -> AppResult<()> {
-    match creds_entry(id)?.delete_credential() {
-        Ok(()) | Err(keyring::Error::NoEntry) => {}
+    match creds_entry(id) {
+        Ok(entry) => match entry.delete_credential() {
+            Ok(()) | Err(keyring::Error::NoEntry) => {}
+            Err(e) if is_backend_unavailable(&e) => {}
+            Err(e) => return Err(AppError::from(e)),
+        },
+        // No store to delete from → already clean.
         Err(e) if is_backend_unavailable(&e) => {}
         Err(e) => return Err(AppError::from(e)),
     }

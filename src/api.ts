@@ -24,8 +24,10 @@ export const api = {
 
   listProfiles: () => invoke<ConnectionProfile[]>("list_profiles"),
 
+  // Resolves to whether the secrets were actually remembered (false when the
+  // OS secure store is unavailable, e.g. no Secret Service on Linux).
   saveProfile: (profile: ConnectionProfile, creds: Credentials) =>
-    invoke<void>("save_profile", { profile, creds }),
+    invoke<boolean>("save_profile", { profile, creds }),
 
   deleteProfile: (id: string) => invoke<void>("delete_profile", { id }),
 

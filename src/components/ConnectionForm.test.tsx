@@ -35,7 +35,7 @@ const savedProfile: ConnectionProfile = {
 beforeEach(() => {
   vi.clearAllMocks();
   mockApi.secretStatus.mockResolvedValue({ hasSecret: true, hasKey: true });
-  mockApi.saveProfile.mockResolvedValue(undefined);
+  mockApi.saveProfile.mockResolvedValue(true);
 });
 
 describe("ConnectionForm", () => {

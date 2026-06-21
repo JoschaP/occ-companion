@@ -22,6 +22,8 @@ import {
   IconPlugConnected,
 } from "@tabler/icons-react";
 
+import { notifications } from "@mantine/notifications";
+
 import { api } from "../api";
 import { errText } from "../lib/errors";
 import {
@@ -106,6 +108,21 @@ export function ConnectionForm({
     };
   }
 
+  // The backend returns false from save_profile when "remember" was requested
+  // but the OS secure store is unavailable (e.g. no Secret Service on Linux);
+  // warn so the user isn't surprised that nothing was persisted.
+  function warnIfNotRemembered(remembered: boolean) {
+    if (remembered || (!profile.rememberSecret && !profile.rememberKey)) return;
+    notifications.show({
+      color: "yellow",
+      icon: <IconAlertTriangle size={18} />,
+      title: "Credentials not remembered",
+      message:
+        "No system keyring is available, so this connection will ask for credentials each time.",
+      autoClose: 6000,
+    });
+  }
+
   async function handleConnect() {
     const v = validate();
     if (v) {
@@ -117,7 +134,8 @@ export function ConnectionForm({
     try {
       const creds = buildCreds();
       // Persist metadata + secrets (per remember flags) before connecting.
-      await api.saveProfile(profile, creds);
+      const remembered = await api.saveProfile(profile, creds);
+      warnIfNotRemembered(remembered);
       onConnect(profile, creds);
     } catch (e) {
       setError(errText(e));
@@ -135,7 +153,8 @@ export function ConnectionForm({
     setError(null);
     setBusy(true);
     try {
-      await api.saveProfile(profile, buildCreds());
+      const remembered = await api.saveProfile(profile, buildCreds());
+      warnIfNotRemembered(remembered);
       onCancel();
     } catch (e) {
       setError(errText(e));

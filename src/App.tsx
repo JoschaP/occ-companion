@@ -96,6 +96,36 @@ export default function App() {
     reloadProfiles();
   }, [reloadProfiles]);
 
+  // Dev-only: auto-seed a demo connection (from .env.development.local) so
+  // local testing needs no manual entry. Never runs in production builds.
+  useEffect(() => {
+    const env = import.meta.env as unknown as Record<string, string | undefined> & {
+      DEV: boolean;
+    };
+    if (!env.DEV || !env.VITE_DEV_ENDPOINT) return;
+    (async () => {
+      const profiles = await api.listProfiles();
+      if (profiles.some((p) => p.id === "dev-demo")) return;
+      const profile: ConnectionProfile = {
+        id: "dev-demo",
+        name: "Demo (dev)",
+        endpoint: env.VITE_DEV_ENDPOINT!,
+        region: env.VITE_DEV_REGION || "us-east-1",
+        bucket: env.VITE_DEV_BUCKET || "",
+        accessKeyId: env.VITE_DEV_ACCESS_KEY_ID || "",
+        pathStyle: env.VITE_DEV_PATH_STYLE !== "false",
+        basePrefix: "",
+        rememberSecret: true,
+        rememberKey: true,
+      };
+      await api.saveProfile(profile, {
+        secretAccessKey: env.VITE_DEV_SECRET,
+        ageKey: env.VITE_DEV_AGE_KEY,
+      });
+      reloadProfiles();
+    })().catch(() => {});
+  }, [reloadProfiles]);
+
   // Download progress / completion events (registered once).
   useEffect(() => {
     const uns: UnlistenFn[] = [];
